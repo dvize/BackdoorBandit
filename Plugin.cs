@@ -5,7 +5,6 @@ using Aki.Reflection.Patching;
 using BepInEx;
 using BepInEx.Configuration;
 using EFT;
-using HarmonyLib;
 using UnityEngine;
 using VersionChecker;
 
@@ -14,15 +13,15 @@ namespace DoorBreach
     [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.0.0")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
-        public static ConfigEntry<bool> NeedHammer;
+        public static ConfigEntry<bool> PlebMode;
         public static int interactiveLayer;
         private void Awake()
         {
-            NeedHammer = Config.Bind(
+            PlebMode = Config.Bind(
                 "Main Settings",
-                "Enabled means GoalEnemy Method, Disabled means IsVisible Method",
-                false,
-                "Set True or False to preferred method");
+                "PlebMode",
+                true,
+                "Enabled means no requirements to breaching doors.");
 
             CheckEftVersion();
             new NewGamePatch().Enable();
