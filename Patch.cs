@@ -134,13 +134,13 @@ namespace BackdoorBandit
                         checkWeaponAndAmmo(player, damageInfo, ref validDamage);
                     }
 
-                    Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
+                    //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
 
                     var hitpoints = collider.transform.parent?.gameObject?.GetComponent<Hitpoints>() as Hitpoints;
 
                     if (validDamage)
                     {
-                        Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
+                        //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
                         //subtract damage
                         hitpoints.hitpoints -= damageInfo.Damage;
 
@@ -183,7 +183,7 @@ namespace BackdoorBandit
             var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
             var weapon = damageInfo.Weapon.TemplateId;
 
-            Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
+            //Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
 
             if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
             {
@@ -201,27 +201,27 @@ namespace BackdoorBandit
             {
                 if (grenadeLaunchers.Contains(weapon) && (bulletTemplate._id.LocalizedName().Contains("HE") || bulletTemplate._id.LocalizedName().ToLower().Contains("shrapnel")))
                 {
-                    Logger.LogInfo($"BB: HE round detected on metal door. weapon used: {damageInfo.Weapon.LocalizedName()}");
+                    //Logger.LogInfo($"BB: HE round detected on metal door. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                     return;
                 }
             }
             else
             {
-                Logger.LogInfo($"BB: bullet use detected on non metal. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                Logger.LogInfo($"BB: bulletTemplate is {bulletTemplate._name.Localized()}");
+                //Logger.LogInfo($"BB: bullet use detected on non metal. weapon used: {damageInfo.Weapon.LocalizedName()}");
+                //Logger.LogInfo($"BB: bulletTemplate is {bulletTemplate._name.Localized()}");
 
                 //check if grenadelauncher and HE round
                 if (grenadeLaunchers.Contains(weapon) && (bulletTemplate._id.LocalizedName().Contains("HE") || bulletTemplate._id.LocalizedName().ToLower().Contains("shrapnel")))
                 {
-                    Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
+                    //Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                 }
 
                 //check if shotgun and slug round
                 if (damageInfo.Weapon.Template.Parent._id == ShotgunParentID && bulletTemplate._id.LocalizedName().ToLower().Contains("slug"))
                 {
-                    Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
+                    //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                 }
 
