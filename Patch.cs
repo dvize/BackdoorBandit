@@ -182,7 +182,6 @@ namespace BackdoorBandit
         {
             var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
             var weapon = damageInfo.Weapon.TemplateId;
-            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
 
             Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
 
@@ -193,13 +192,10 @@ namespace BackdoorBandit
                     validDamage = true;
                 }
 
-                if (damageInfo.DamageType == EDamageType.Blunt && validMeleeWeapons.Contains(weapon) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
-                {
-                    validDamage = true;
-                }
-
                 return;
             }
+
+            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
 
             if (material == MaterialType.MetalThin || material == MaterialType.MetalThick)
             {
