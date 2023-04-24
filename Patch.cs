@@ -127,9 +127,9 @@ namespace BackdoorBandit
                     //check if collider is in the children of the door.. found out the heirarchy is different for doors on different maps.
                     //see if any of the parents are a door
 
-                    isDoor = collider.GetComponentInParent<Door>().gameObject != null;
+                    isDoor = collider.GetComponentInParent<Door>() != null;
                     //check if door we found has hitpoints
-                    hasHitPoints = collider.GetComponentInParent<Hitpoints>().gameObject != null;
+                    hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
                 }
                 catch { }
 
