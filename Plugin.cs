@@ -17,13 +17,15 @@ namespace DoorBreach
         public static int interactiveLayer;
         private void Awake()
         {
+            CheckEftVersion();
+
             PlebMode = Config.Bind(
                 "Main Settings",
                 "PlebMode",
                 false,
                 "Enabled means no requirements to breaching doors.");
 
-            CheckEftVersion();
+            
             new NewGamePatch().Enable();
             new BackdoorBandit.ApplyHit().Enable();
         }
