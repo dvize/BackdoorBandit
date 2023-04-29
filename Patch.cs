@@ -33,7 +33,6 @@ namespace BackdoorBandit
         public void Awake()
         {
             int doorCount = 0;
-            int changedCount = 0;
             int inoperableCount = 0;
             int invalidLayerCount = 0;
             int invalidStateCount = 0;
@@ -99,21 +98,25 @@ namespace BackdoorBandit
 
     internal class ApplyHit : ModulePatch
     {
-        static BallisticCollider collider;
-        static bool isDoor;
-        static bool hasHitPoints;
-        static bool validDamage;
-        static Hitpoints hitpoints;
-        static Door door;
+        private static BallisticCollider collider;
+        private static bool isDoor;
+        private static bool hasHitPoints;
+        private static bool validDamage;
+        private static Hitpoints hitpoints;
+        private static Door door;
         protected override MethodBase GetTargetMethod() => typeof(BallisticCollider).GetMethod(nameof(BallisticCollider.ApplyHit));
 
         [PatchPrefix]
-        public static void Prefix(DamageInfo damageInfo, GStruct307 shotID)
+        public static bool Prefix(DamageInfo damageInfo, GStruct307 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
 
             //only want to apply damage to doors if the player is the one shooting and not a lampcontroller related
-            if (damageInfo.Player.IsYourPlayer && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window)
+            if (damageInfo.Player != null
+                && damageInfo.Player.IsYourPlayer 
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
+                && damageInfo.DamageType != EDamageType.Explosion)
             {
                 //setup colliders and check if we have the right components
                 collider = damageInfo.HittedBallisticCollider as BallisticCollider;
@@ -167,8 +170,11 @@ namespace BackdoorBandit
                     }
 
                 }
+
+                return false;
             }
 
+            return true;
         }
 
 
