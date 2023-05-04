@@ -11,6 +11,7 @@ using EFT.Ballistics;
 using EFT.Interactive;
 using EFT.InventoryLogic;
 using HarmonyLib;
+using HarmonyLib.Tools;
 using UnityEngine;
 
 namespace BackdoorBandit
@@ -106,8 +107,59 @@ namespace BackdoorBandit
         private static Door door;
         protected override MethodBase GetTargetMethod() => typeof(BallisticCollider).GetMethod(nameof(BallisticCollider.ApplyHit));
 
-        [PatchPrefix]
-        public static bool Prefix(DamageInfo damageInfo, GStruct307 shotID)
+/*        public static bool isValidHitOrientation(Vector3 hitNormal, Transform colliderTransform, Vector3 hitPoint)
+        {
+            Vector3 localHitNormal = colliderTransform.InverseTransformDirection(hitNormal);
+
+            if (Mathf.Abs(localHitNormal.y) > Mathf.Abs(localHitNormal.x) && Mathf.Abs(localHitNormal.y) > Mathf.Abs(localHitNormal.z))
+            {
+                if (hitPoint.z >= -0.25f && hitPoint.z <= 0.08f && hitPoint.x >= 0.8f && hitPoint.x <= 0.9f)
+                {
+                    return true;
+                }
+            }
+            else if (Mathf.Abs(localHitNormal.x) > Mathf.Abs(localHitNormal.y) && Mathf.Abs(localHitNormal.x) > Mathf.Abs(localHitNormal.z))
+            {
+                if (hitPoint.z >= -0.25f && hitPoint.z <= 0.08f && hitPoint.y <= -0.9f && hitPoint.y >= -1f)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (localHitNormal.z > 0)
+                {
+                }
+                else
+                {
+                }
+            }
+
+            return false;
+        }*/
+
+        private static bool isValidHit(DamageInfo damageInfo)
+        {
+            Collider col = damageInfo.HitCollider;
+
+            if (col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>() != null) 
+            {
+                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
+                DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
+                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
+                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
+
+                Logger.LogWarning("distance to handle = " + distanceToHandle);
+
+                return distanceToHandle < 0.12f;
+            }
+
+            Logger.LogWarning("no door handle found");
+            return false;
+        }
+
+        [PatchPostfix]
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct307 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
 
@@ -139,6 +191,7 @@ namespace BackdoorBandit
                 //Logger.LogInfo($"BackdoorBandit: isDoor is {isDoor}");
                 //Logger.LogInfo($"BackdoorBandit: hasHitPoints is {hasHitPoints}");
 
+
                 if (isDoor && hasHitPoints)
                 {
                     //we know door was hit and is a valid door
@@ -164,17 +217,11 @@ namespace BackdoorBandit
                         {
                             //open door
                             door = collider.GetComponentInParent<Door>();
-                            door.KickOpen(true);
+                            damageInfo.Player.CurrentState.ExecuteDoorInteraction(door, new GClass2599(EInteractionType.Breach), null, damageInfo.Player);
                         }
-
                     }
-
                 }
-
-                return false;
             }
-
-            return true;
         }
 
 
@@ -238,18 +285,13 @@ namespace BackdoorBandit
                 }
 
                 //check if shotgun and slug round
-                if (damageInfo.Weapon.Template.Parent._id == ShotgunParentID && bulletTemplate._id.LocalizedName().ToLower().Contains("slug"))
+                if (damageInfo.Weapon.Template.Parent._id == ShotgunParentID && bulletTemplate._id.LocalizedName().ToLower().Contains("slug") && isValidHit(damageInfo))
                 {
                     //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                 }
 
-
-
             }
         }
-
-
-
     }
 }
