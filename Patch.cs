@@ -107,20 +107,6 @@ namespace BackdoorBandit
         private static Door door;
         protected override MethodBase GetTargetMethod() => typeof(BallisticCollider).GetMethod(nameof(BallisticCollider.ApplyHit));
 
-        private static bool isValidHit(DamageInfo damageInfo)
-        {
-            Collider col = damageInfo.HitCollider;
-
-            if (col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>() != null) 
-            {
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.12f;
-            }
-            return false;
-        }
 
         [PatchPostfix]
         public static void PatchPostFix(DamageInfo damageInfo, GStruct307 shotID)
@@ -131,8 +117,7 @@ namespace BackdoorBandit
             if (damageInfo.Player != null
                 && damageInfo.Player.IsYourPlayer 
                 && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
-                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
-                && damageInfo.DamageType != EDamageType.Explosion)
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window)
             {
                 //setup colliders and check if we have the right components
                 collider = damageInfo.HittedBallisticCollider as BallisticCollider;
@@ -179,7 +164,7 @@ namespace BackdoorBandit
                         //check if door is openable
                         if (hitpoints.hitpoints <= 0)
                         {
-                            //open door
+                            //open door and load correctly
                             door = collider.GetComponentInParent<Door>();
                             damageInfo.Player.CurrentState.ExecuteDoorInteraction(door, new GClass2599(EInteractionType.Breach), null, damageInfo.Player);
                         }
@@ -206,8 +191,6 @@ namespace BackdoorBandit
             "5bffe7930db834001b734a39" //CrashAxe
         };
 
-        private static string ShotgunParentID = "5447b6094bdc2dc3278b4567";
-
         private static void checkWeaponAndAmmo(Player player, DamageInfo damageInfo, ref bool validDamage)
         {
             var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
@@ -229,7 +212,7 @@ namespace BackdoorBandit
 
             if (material == MaterialType.MetalThin || material == MaterialType.MetalThick)
             {
-                if (grenadeLaunchers.Contains(weapon) && (bulletTemplate._id.LocalizedName().Contains("HE") || bulletTemplate._id.LocalizedName().ToLower().Contains("shrapnel")))
+                if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
                 {
                     //Logger.LogInfo($"BB: HE round detected on metal door. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
@@ -242,20 +225,76 @@ namespace BackdoorBandit
                 //Logger.LogInfo($"BB: bulletTemplate is {bulletTemplate._name.Localized()}");
 
                 //check if grenadelauncher and HE round
-                if (grenadeLaunchers.Contains(weapon) && (bulletTemplate._id.LocalizedName().Contains("HE") || bulletTemplate._id.LocalizedName().ToLower().Contains("shrapnel")))
+                if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
                 {
                     //Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                 }
 
                 //check if shotgun and slug round
-                if (damageInfo.Weapon.Template.Parent._id == ShotgunParentID && bulletTemplate._id.LocalizedName().ToLower().Contains("slug") && isValidHit(damageInfo))
+                if (isShotgun(damageInfo) && isSlug(bulletTemplate) && isValidHit(damageInfo))
                 {
                     //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
                     validDamage = true;
                 }
 
             }
+        }
+
+
+        private static bool isShrapnel(AmmoTemplate bulletTemplate)
+        {
+            Logger.LogDebug("BB: detected grenade shrapnel");
+
+            //check if bulletTemplate is shrapnel and we only want grenade shrapnel not bullet shrapnel
+            return (bulletTemplate.FragmentType == "5485a8684bdc2da71d8b4567");
+        }
+
+        private static bool isHEGrenade(AmmoTemplate bulletTemplate)
+        {
+            Logger.LogDebug("BB: detected HE Grenade");
+
+            //check if bulletTemplate is HE Grenade if has ExplosionStrength and only one projectile
+            return (bulletTemplate.ExplosionStrength > 0 
+                && bulletTemplate.ProjectileCount == 1);
+        }
+
+        private static HashSet<string> slugCalibers = new HashSet<string>
+        {
+            "Caliber12g", //  12/70
+            "Caliber20g", // 20/70
+            "Caliber23x75" // 23x75
+        };
+        private static bool isSlug (AmmoTemplate bulletTemplate)
+        {
+            Logger.LogDebug("BB: detected Slug");
+
+            //check if bulletTemplate has only one projectile and matches slugCalibers
+            return (slugCalibers.Contains(bulletTemplate.Caliber)
+                && bulletTemplate.ProjectileCount == 1);
+        }
+        private static bool isShotgun(DamageInfo damageInfo)
+        {
+            Logger.LogDebug("BB: detected Shotgun used");
+
+            //check if weapon is a shotgun
+            
+            return ((damageInfo.Weapon as Weapon).WeapClass == "shotgun");
+        }
+        private static bool isValidHit(DamageInfo damageInfo)
+        {
+            //check if door handle area was hit
+            Collider col = damageInfo.HitCollider;
+
+            if (col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>() != null)
+            {
+                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
+                DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
+                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
+                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
+                return distanceToHandle < 0.12f;
+            }
+            return false;
         }
     }
 }
