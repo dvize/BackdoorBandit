@@ -107,37 +107,6 @@ namespace BackdoorBandit
         private static Door door;
         protected override MethodBase GetTargetMethod() => typeof(BallisticCollider).GetMethod(nameof(BallisticCollider.ApplyHit));
 
-/*        public static bool isValidHitOrientation(Vector3 hitNormal, Transform colliderTransform, Vector3 hitPoint)
-        {
-            Vector3 localHitNormal = colliderTransform.InverseTransformDirection(hitNormal);
-
-            if (Mathf.Abs(localHitNormal.y) > Mathf.Abs(localHitNormal.x) && Mathf.Abs(localHitNormal.y) > Mathf.Abs(localHitNormal.z))
-            {
-                if (hitPoint.z >= -0.25f && hitPoint.z <= 0.08f && hitPoint.x >= 0.8f && hitPoint.x <= 0.9f)
-                {
-                    return true;
-                }
-            }
-            else if (Mathf.Abs(localHitNormal.x) > Mathf.Abs(localHitNormal.y) && Mathf.Abs(localHitNormal.x) > Mathf.Abs(localHitNormal.z))
-            {
-                if (hitPoint.z >= -0.25f && hitPoint.z <= 0.08f && hitPoint.y <= -0.9f && hitPoint.y >= -1f)
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                if (localHitNormal.z > 0)
-                {
-                }
-                else
-                {
-                }
-            }
-
-            return false;
-        }*/
-
         private static bool isValidHit(DamageInfo damageInfo)
         {
             Collider col = damageInfo.HitCollider;
@@ -148,13 +117,8 @@ namespace BackdoorBandit
                 DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
                 Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
                 float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-
-                Logger.LogWarning("distance to handle = " + distanceToHandle);
-
                 return distanceToHandle < 0.12f;
             }
-
-            Logger.LogWarning("no door handle found");
             return false;
         }
 
