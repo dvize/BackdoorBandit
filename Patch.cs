@@ -64,7 +64,7 @@ namespace BackdoorBandit
                 }
 
                 // Create a random number of hitpoints
-                var randhitpoints = UnityEngine.Random.Range(200, 300);
+                var randhitpoints = UnityEngine.Random.Range(100, 200);
 
                 //add hitpoints component to door
                 var hitpoints = door.gameObject.GetOrAddComponent<Hitpoints>();
@@ -117,7 +117,8 @@ namespace BackdoorBandit
             if (damageInfo.Player != null
                 && damageInfo.Player.IsYourPlayer 
                 && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
-                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window)
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
+                && damageInfo.DamageType != EDamageType.Explosion)
             {
                 //setup colliders and check if we have the right components
                 collider = damageInfo.HittedBallisticCollider as BallisticCollider;
@@ -252,7 +253,7 @@ namespace BackdoorBandit
 
         private static bool isHEGrenade(AmmoTemplate bulletTemplate)
         {
-            Logger.LogDebug("BB: detected HE Grenade");
+            //Logger.LogDebug("BB: detected HE Grenade");
 
             //check if bulletTemplate is HE Grenade if has ExplosionStrength and only one projectile
             return (bulletTemplate.ExplosionStrength > 0 
@@ -267,7 +268,8 @@ namespace BackdoorBandit
         };
         private static bool isSlug (AmmoTemplate bulletTemplate)
         {
-            Logger.LogDebug("BB: detected Slug");
+            //Logger.LogDebug("BB: detected slug: " + (slugCalibers.Contains(bulletTemplate.Caliber)
+               // && bulletTemplate.ProjectileCount == 1));
 
             //check if bulletTemplate has only one projectile and matches slugCalibers
             return (slugCalibers.Contains(bulletTemplate.Caliber)
@@ -275,7 +277,7 @@ namespace BackdoorBandit
         }
         private static bool isShotgun(DamageInfo damageInfo)
         {
-            Logger.LogDebug("BB: detected Shotgun used");
+            //Logger.LogDebug("BB: detected Shotgun: " + (damageInfo.Weapon as Weapon).WeapClass == "shotgun");
 
             //check if weapon is a shotgun
             
@@ -286,15 +288,23 @@ namespace BackdoorBandit
             //check if door handle area was hit
             Collider col = damageInfo.HitCollider;
 
+            //if doorhandle exists and is hit
             if (col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>() != null)
             {
+                //Logger.LogDebug("BB: doorhandle exists so checking if hit");
                 Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
                 DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
                 Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
                 float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.12f;
+                return distanceToHandle < 0.20f;
             }
-            return false;
+            //if doorhandle does not exist then it is a valid hit
+            else
+            {
+                //Logger.LogDebug("BB: doorhandle does not exist so valid hit");
+                return true;
+            }
+
         }
     }
 }
