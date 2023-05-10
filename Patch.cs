@@ -281,7 +281,7 @@ namespace BackdoorBandit
 
             //check if weapon is a shotgun
             
-            return ((damageInfo.Weapon as Weapon).WeapClass == "shotgun");
+            return ((damageInfo.Weapon as Weapon)?.WeapClass == "shotgun");
         }
         private static bool isValidHit(DamageInfo damageInfo)
         {
