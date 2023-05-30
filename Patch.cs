@@ -167,7 +167,7 @@ namespace BackdoorBandit
                         {
                             //open door and load correctly
                             door = collider.GetComponentInParent<Door>();
-                            damageInfo.Player.CurrentState.ExecuteDoorInteraction(door, new GClass2599(EInteractionType.Breach), null, damageInfo.Player);
+                            damageInfo.Player.CurrentState.ExecuteDoorInteraction(door, new GClass2600(EInteractionType.Breach), null, damageInfo.Player);
                         }
                     }
                 }
