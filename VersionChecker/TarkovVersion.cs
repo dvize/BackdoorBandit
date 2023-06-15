@@ -5,7 +5,6 @@ using System.Reflection;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx;
-using static EFT.ScenesPreset;
 using UnityEngine;
 
 namespace VersionChecker
