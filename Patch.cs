@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using Aki.Reflection.Patching;
 using BepInEx.Logging;
@@ -10,8 +8,6 @@ using EFT;
 using EFT.Ballistics;
 using EFT.Interactive;
 using EFT.InventoryLogic;
-using HarmonyLib;
-using HarmonyLib.Tools;
 using UnityEngine;
 
 namespace BackdoorBandit
@@ -115,14 +111,14 @@ namespace BackdoorBandit
 
             //only want to apply damage to doors if the player is the one shooting and not a lampcontroller related
             if (damageInfo.Player != null
-                && damageInfo.Player.IsYourPlayer 
+                && damageInfo.Player.IsYourPlayer
                 && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
                 && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
                 && damageInfo.DamageType != EDamageType.Explosion)
             {
                 //setup colliders and check if we have the right components
                 collider = damageInfo.HittedBallisticCollider as BallisticCollider;
-                
+
                 isDoor = false;
                 hasHitPoints = false;
                 validDamage = DoorBreachPlugin.PlebMode.Value ? true : false;
@@ -233,9 +229,10 @@ namespace BackdoorBandit
                 }
 
                 //check if shotgun and slug round
-                if (isShotgun(damageInfo) && isSlug(bulletTemplate) && isValidHit(damageInfo))
+                if (isShotgun(damageInfo) && isBreachingSlug(bulletTemplate) && isValidHit(damageInfo))
                 {
                     //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
+                    damageInfo.Damage = 200;
                     validDamage = true;
                 }
 
@@ -256,31 +253,20 @@ namespace BackdoorBandit
             //Logger.LogDebug("BB: detected HE Grenade");
 
             //check if bulletTemplate is HE Grenade if has ExplosionStrength and only one projectile
-            return (bulletTemplate.ExplosionStrength > 0 
+            return (bulletTemplate.ExplosionStrength > 0
                 && bulletTemplate.ProjectileCount == 1);
         }
 
-        private static HashSet<string> slugCalibers = new HashSet<string>
+        private static bool isBreachingSlug(AmmoTemplate bulletTemplate)
         {
-            "Caliber12g", //  12/70
-            "Caliber20g", // 20/70
-            "Caliber23x75" // 23x75
-        };
-        private static bool isSlug (AmmoTemplate bulletTemplate)
-        {
-            //Logger.LogDebug("BB: detected slug: " + (slugCalibers.Contains(bulletTemplate.Caliber)
-               // && bulletTemplate.ProjectileCount == 1));
-
-            //check if bulletTemplate has only one projectile and matches slugCalibers
-            return (slugCalibers.Contains(bulletTemplate.Caliber)
-                && bulletTemplate.ProjectileCount == 1);
+            return (bulletTemplate._id == "doorbreacher");
         }
         private static bool isShotgun(DamageInfo damageInfo)
         {
             //Logger.LogDebug("BB: detected Shotgun: " + (damageInfo.Weapon as Weapon).WeapClass == "shotgun");
 
             //check if weapon is a shotgun
-            
+
             return ((damageInfo.Weapon as Weapon)?.WeapClass == "shotgun");
         }
         private static bool isValidHit(DamageInfo damageInfo)
@@ -296,7 +282,7 @@ namespace BackdoorBandit
                 DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
                 Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
                 float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.20f;
+                return distanceToHandle < 0.25f;
             }
             //if doorhandle does not exist then it is a valid hit
             else

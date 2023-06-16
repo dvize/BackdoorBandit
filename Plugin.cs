@@ -10,7 +10,7 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.3.4")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.4.0")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
@@ -25,9 +25,10 @@ namespace DoorBreach
                 false,
                 "Enabled means no requirements to breaching doors.");
 
-            
+
             new NewGamePatch().Enable();
             new BackdoorBandit.ApplyHit().Enable();
+
         }
 
         private void CheckEftVersion()
