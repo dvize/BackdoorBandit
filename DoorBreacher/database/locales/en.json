@@ -1,0 +1,15 @@
+{
+	"templates": {
+		"doorbreacher": {
+			"Name": "12/70 Door-Breaching Round",
+			"ShortName": "Breach",
+			"Description": "The door-breaching round is designed to destroy deadbolts, locks, and hinges without risking lives by ricocheting or penetrating through doors.  These frangible rounds are made of a dense sintered material which can destroy a lock or hinge and then immediately disperse."
+		},
+		"doorbreacherbox": {
+			"Name": "12/70 Door-Breaching 5-Round Box",
+			"ShortName": "Breach",
+			"Description": "A 5-round box of 12ga door breaching shells. The door-breaching round is designed to destroy deadbolts, locks, and hinges without risking lives by ricocheting or penetrating through doors.  These frangible rounds are made of a dense sintered material which can destroy a lock or hinge and then immediately disperse."
+		}
+		
+	}
+}
