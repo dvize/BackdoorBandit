@@ -20,4 +20,4 @@ using VersionChecker;
 
 [assembly: AssemblyVersion("1.4.0.0")]
 [assembly: AssemblyFileVersion("1.4.0.0")]
-[assembly: TarkovVersion(23399)]
+[assembly: TarkovVersion(25206)]

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Aki.Reflection.Patching;
 using BepInEx.Logging;
@@ -105,68 +106,78 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct307 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct353 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
-
-            //only want to apply damage to doors if the player is the one shooting and not a lampcontroller related
-            if (damageInfo.Player != null
-                && damageInfo.Player.IsYourPlayer
-                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
-                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
-                && damageInfo.DamageType != EDamageType.Explosion)
+            try
             {
-                //setup colliders and check if we have the right components
-                collider = damageInfo.HittedBallisticCollider as BallisticCollider;
-
-                isDoor = false;
-                hasHitPoints = false;
-                validDamage = DoorBreachPlugin.PlebMode.Value ? true : false;
-
-                try
+                //only want to apply damage to doors if the player is the one shooting and not a lampcontroller related
+                if (damageInfo.Player != null
+                    && damageInfo.Player.iPlayer.IsYourPlayer
+                    && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
+                    && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
+                    && damageInfo.DamageType != EDamageType.Explosion)
                 {
-                    //check if collider is in the children of the door.. found out the heirarchy is different for doors on different maps.
-                    //see if any of the parents are a door
+                    //setup colliders and check if we have the right components
+                    collider = damageInfo.HittedBallisticCollider as BallisticCollider;
 
-                    isDoor = collider.GetComponentInParent<Door>() != null;
-                    //check if door we found has hitpoints
-                    hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
-                }
-                catch { }
+                    isDoor = false;
+                    hasHitPoints = false;
+                    validDamage = DoorBreachPlugin.PlebMode.Value ? true : false;
 
-                //Logger.LogInfo($"BackdoorBandit: isDoor is {isDoor}");
-                //Logger.LogInfo($"BackdoorBandit: hasHitPoints is {hasHitPoints}");
-
-
-                if (isDoor && hasHitPoints)
-                {
-                    //we know door was hit and is a valid door
-
-                    //check if weapons or ammo types are valid only if pleb mode is false
-                    if (!DoorBreachPlugin.PlebMode.Value)
+                    try
                     {
-                        checkWeaponAndAmmo(damageInfo.Player, damageInfo, ref validDamage);
+                        //check if collider is in the children of the door.. found out the heirarchy is different for doors on different maps.
+                        //see if any of the parents are a door
+
+                        isDoor = collider.GetComponentInParent<Door>() != null;
+                        //check if door we found has hitpoints
+                        hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
                     }
+                    catch { }
 
-                    //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
+                    //Logger.LogInfo($"BackdoorBandit: isDoor is {isDoor}");
+                    //Logger.LogInfo($"BackdoorBandit: hasHitPoints is {hasHitPoints}");
 
-                    hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
 
-                    if (validDamage)
+                    if (isDoor && hasHitPoints)
                     {
-                        //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
-                        //subtract damage
-                        hitpoints.hitpoints -= damageInfo.Damage;
+                        //we know door was hit and is a valid door
 
-                        //check if door is openable
-                        if (hitpoints.hitpoints <= 0)
+                        //check if weapons or ammo types are valid only if pleb mode is false
+                        if (!DoorBreachPlugin.PlebMode.Value)
                         {
-                            //open door and load correctly
-                            door = collider.GetComponentInParent<Door>();
-                            damageInfo.Player.CurrentState.ExecuteDoorInteraction(door, new GClass2600(EInteractionType.Breach), null, damageInfo.Player);
+                            checkWeaponAndAmmo(damageInfo, ref validDamage);
+                        }
+
+                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
+
+                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
+
+                        if (validDamage)
+                        {
+                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
+                            //subtract damage
+                            hitpoints.hitpoints -= damageInfo.Damage;
+
+                            //check if door is openable
+                            if (hitpoints.hitpoints <= 0)
+                            {
+                                //open door and load correctly
+                                door = collider.GetComponentInParent<Door>();
+                                var tempPlayer = damageInfo.Player.AIData.Player;
+                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new GClass2846(EInteractionType.Breach), null, tempPlayer);
+                            }
                         }
                     }
                 }
+            }
+            catch(Exception e)
+            {
+                Logger.LogError($"Source: {e.Source}");
+                Logger.LogError($"Target: {e.TargetSite}");
+                Logger.LogError($"Message: {e.Message}");
+                Logger.LogError($"Stacktrace: {e.StackTrace}");
             }
         }
 
@@ -188,11 +199,11 @@ namespace BackdoorBandit
             "5bffe7930db834001b734a39" //CrashAxe
         };
 
-        private static void checkWeaponAndAmmo(Player player, DamageInfo damageInfo, ref bool validDamage)
+        private static void checkWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
         {
             var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
             var weapon = damageInfo.Weapon.TemplateId;
-
+            
             //Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
 
             if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
