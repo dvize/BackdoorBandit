@@ -10,22 +10,42 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.5.0")]
-    [BepInDependency("com.spt-aki.core", "3.6.0")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.6.0")]
+    [BepInDependency("com.spt-aki.core", "3.7.0")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
+        public static ConfigEntry<bool> OpenLootableContainers;
+        public static ConfigEntry<bool> OpenCarDoors;
+
         public static int interactiveLayer;
         private void Awake()
         {
             CheckEftVersion();
 
             PlebMode = Config.Bind(
-                "Main Settings",
-                "PlebMode",
+                "1. Main Settings",
+                "Plebmode",
                 false,
-                "Enabled means no requirements to breaching doors.");
+                new ConfigDescription("Enabled Means No Requirements To Breach Any Door/LootContainer",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 3}));
 
+            OpenLootableContainers = Config.Bind(
+                "1. Main Settings",
+                "Breach Lootable Containers",
+                false,
+                new ConfigDescription("If enabled, can use shotgun breach rounds on safes",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 2 }));
+
+            OpenCarDoors = Config.Bind(
+                "1. Main Settings",
+                "Breach Car Doors",
+                false,
+                new ConfigDescription("If Enabled, can use shotgun breach rounds on car doors",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             new NewGamePatch().Enable();
             new BackdoorBandit.ApplyHit().Enable();
