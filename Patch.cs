@@ -287,7 +287,7 @@ namespace BackdoorBandit
 
                         if (validDamage)
                         {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
+                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
                             //subtract damage
                             hitpoints.hitpoints -= damageInfo.Damage;
 
@@ -295,15 +295,12 @@ namespace BackdoorBandit
                             if (hitpoints.hitpoints <= 0)
                             {
                                 var player = damageInfo.Player.AIData.Player;
-                                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
+                                
                                 //open door and load correctly
-                                Singleton<GClass635>.Instance.PlaySound(player, player.Position, Singleton<GClass563>.Instance.SOUND_DOOR_BREACH_METERS, AISoundType.step);
-
                                 carTrunk = collider.GetComponentInParent<Trunk>();
-                                //grab private method_2 from WorldInteractiveObject carTrunk
-                                var method_2 = AccessTools.Method(typeof(WorldInteractiveObject), "method_2");
-                                method_2.Invoke(carTrunk, new object[] { EDoorState.Open, true });
-                                /*player.MovementContext.ExecuteInteraction(carTrunk, new InteractionResult(EInteractionType.Unlock))*/;
+                                carTrunk.DoorState = EDoorState.Shut;
+                               
+                                player.CurrentManagedState.ExecuteDoorInteraction(carTrunk, new GClass2846(EInteractionType.Open), null, player);
                             }
                         }
                     }
@@ -324,7 +321,7 @@ namespace BackdoorBandit
 
                         if (validDamage)
                         {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
+                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
                             //subtract damage
                             hitpoints.hitpoints -= damageInfo.Damage;
 
@@ -332,14 +329,12 @@ namespace BackdoorBandit
                             if (hitpoints.hitpoints <= 0)
                             {
                                 var player = damageInfo.Player.AIData.Player;
-                                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
+                                
                                 //open door and load correctly
-                                Singleton<GClass635>.Instance.PlaySound(player, player.Position, Singleton<GClass563>.Instance.SOUND_DOOR_BREACH_METERS, AISoundType.step);
                                 lootContainer = collider.GetComponentInParent<LootableContainer>();
-                                var method_2 = AccessTools.Method(typeof(WorldInteractiveObject), "method_2");
-                                method_2.Invoke(lootContainer, new object[] { EDoorState.Open, true });
-                                /*player.MovementContext.ExecuteInteraction(lootContainer, new InteractionResult(EInteractionType.Unlock));*/
+                                lootContainer.DoorState = EDoorState.Shut;
 
+                                player.CurrentManagedState.ExecuteDoorInteraction(lootContainer, new GClass2846(EInteractionType.Open), null, player);
                             }
                         }
                     }
@@ -557,11 +552,15 @@ namespace BackdoorBandit
             if (col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>() != null)
             {
                 //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.25f;
+                var gameobj = col.GetComponentInParent<Trunk>().gameObject;
+               
+                //find child game object Lock from gameobj
+                var carLockObj = gameobj.transform.FindChild("CarLock_Hand").gameObject;
+                var lockObj = carLockObj.transform.FindChild("Lock").gameObject;
+
+                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
+                //Logger.LogError("Distance to lock: " + distanceToLock);
+                return distanceToLock < 0.25f;
             }
             //if doorhandle does not exist then it is a valid hit
             else
@@ -581,11 +580,14 @@ namespace BackdoorBandit
             if (col.GetComponentInParent<LootableContainer>().GetComponentInChildren<DoorHandle>() != null)
             {
                 //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.25f;
+                var gameobj = col.GetComponentInParent<LootableContainer>().gameObject;
+
+                //find child game object Lock from gameobj
+                var lockObj = gameobj.transform.FindChild("Lock").gameObject;
+
+                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
+                //Logger.LogError("Distance to lock: " + distanceToLock);
+                return distanceToLock < 0.25f;
             }
             //if doorhandle does not exist then it is a valid hit
             else
