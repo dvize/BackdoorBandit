@@ -204,7 +204,7 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct358 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct353 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
             try
@@ -236,10 +236,71 @@ namespace BackdoorBandit
                     //check if door we found has hitpoints
                     hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
 
+                    if (isCarTrunk && hasHitPoints)
+                    {
+                        //check if weapons or ammo types are valid only if pleb mode is false
+                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenCarDoors.Value)
+                        {
+                            checkCarWeaponAndAmmo(damageInfo, ref validDamage);
+                        }
 
-                    //Logger.LogInfo($"BackdoorBandit: isDoor is {isDoor}");
-                    //Logger.LogInfo($"BackdoorBandit: hasHitPoints is {hasHitPoints}");
+                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
 
+                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
+
+                        if (validDamage)
+                        {
+                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
+                            //subtract damage
+                            hitpoints.hitpoints -= damageInfo.Damage;
+
+                            //check if isCarTrunk is openable
+                            if (hitpoints.hitpoints <= 0)
+                            {
+                                var player = damageInfo.Player.AIData.Player;
+                                
+                                //open door and load correctly
+                                carTrunk = collider.GetComponentInParent<Trunk>();
+                                carTrunk.DoorState = EDoorState.Shut;
+                               
+                                player.CurrentManagedState.ExecuteDoorInteraction(carTrunk, new GClass2846(EInteractionType.Open), null, player);
+                            }
+                        }
+                    }
+
+                    if (isLootableContainer && hasHitPoints)
+                    {
+                        //we know door was hit and is a valid door
+
+                        //check if weapons or ammo types are valid only if pleb mode is false
+                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenLootableContainers.Value)
+                        {
+                            checkLootableContainerWeaponAndAmmo(damageInfo, ref validDamage);
+                        }
+
+                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
+
+                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
+
+                        if (validDamage)
+                        {
+                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
+                            //subtract damage
+                            hitpoints.hitpoints -= damageInfo.Damage;
+
+                            //check if door is openable
+                            if (hitpoints.hitpoints <= 0)
+                            {
+                                var player = damageInfo.Player.AIData.Player;
+                                
+                                //open door and load correctly
+                                lootContainer = collider.GetComponentInParent<LootableContainer>();
+                                lootContainer.DoorState = EDoorState.Shut;
+
+                                player.CurrentManagedState.ExecuteDoorInteraction(lootContainer, new GClass2846(EInteractionType.Open), null, player);
+                            }
+                        }
+                    }
 
                     if (isDoor && hasHitPoints)
                     {
@@ -268,78 +329,7 @@ namespace BackdoorBandit
                                 Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Door");
                                 door = collider.GetComponentInParent<Door>();
                                 var tempPlayer = damageInfo.Player.AIData.Player;
-                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(EInteractionType.Breach), null, tempPlayer);
-                            }
-                        }
-                    }
-
-                    if (isCarTrunk && hasHitPoints)
-                    {
-                        //check if weapons or ammo types are valid only if pleb mode is false
-                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenCarDoors.Value)
-                        {
-                            checkCarWeaponAndAmmo(damageInfo, ref validDamage);
-                        }
-
-                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
-
-                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
-
-                        if (validDamage)
-                        {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
-                            //subtract damage
-                            hitpoints.hitpoints -= damageInfo.Damage;
-
-                            //check if isCarTrunk is openable
-                            if (hitpoints.hitpoints <= 0)
-                            {
-                                var player = damageInfo.Player.AIData.Player;
-                                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
-                                //open door and load correctly
-                                Singleton<GClass519>.Instance.PlaySound(player, player.Position, GClass455.Core.SOUND_DOOR_BREACH_METERS, AISoundType.step);
-
-                                carTrunk = collider.GetComponentInParent<Trunk>();
-                                //grab private method_2 from WorldInteractiveObject carTrunk
-                                var method_2 = AccessTools.Method(typeof(WorldInteractiveObject), "method_2");
-                                method_2.Invoke(carTrunk, new object[] { EDoorState.Open, true });
-                                /*player.MovementContext.ExecuteInteraction(carTrunk, new InteractionResult(EInteractionType.Unlock))*/;
-                            }
-                        }
-                    }
-
-                    if (isLootableContainer && hasHitPoints)
-                    {
-                        //we know door was hit and is a valid door
-
-                        //check if weapons or ammo types are valid only if pleb mode is false
-                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenLootableContainers.Value)
-                        {
-                            checkLootableContainerWeaponAndAmmo(damageInfo, ref validDamage);
-                        }
-
-                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
-
-                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
-
-                        if (validDamage)
-                        {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
-                            //subtract damage
-                            hitpoints.hitpoints -= damageInfo.Damage;
-
-                            //check if door is openable
-                            if (hitpoints.hitpoints <= 0)
-                            {
-                                var player = damageInfo.Player.AIData.Player;
-                                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
-                                //open door and load correctly
-                                Singleton<GClass519>.Instance.PlaySound(player, player.Position, GClass455.Core.SOUND_DOOR_BREACH_METERS, AISoundType.step);
-                                lootContainer = collider.GetComponentInParent<LootableContainer>();
-                                var method_2 = AccessTools.Method(typeof(WorldInteractiveObject), "method_2");
-                                method_2.Invoke(lootContainer, new object[] { EDoorState.Open, true });
-                                /*player.MovementContext.ExecuteInteraction(lootContainer, new InteractionResult(EInteractionType.Unlock));*/
-
+                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new GClass2846(EInteractionType.Breach), null, tempPlayer);
                             }
                         }
                     }
@@ -557,11 +547,15 @@ namespace BackdoorBandit
             if (col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>() != null)
             {
                 //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.25f;
+                var gameobj = col.GetComponentInParent<Trunk>().gameObject;
+               
+                //find child game object Lock from gameobj
+                var carLockObj = gameobj.transform.Find("CarLock_Hand").gameObject;
+                var lockObj = carLockObj.transform.Find("Lock").gameObject;
+
+                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
+                //Logger.LogError("Distance to lock: " + distanceToLock);
+                return distanceToLock < 0.25f;
             }
             //if doorhandle does not exist then it is a valid hit
             else
@@ -581,11 +575,14 @@ namespace BackdoorBandit
             if (col.GetComponentInParent<LootableContainer>().GetComponentInChildren<DoorHandle>() != null)
             {
                 //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.25f;
+                var gameobj = col.GetComponentInParent<LootableContainer>().gameObject;
+
+                //find child game object Lock from gameobj
+                var lockObj = gameobj.transform.Find("Lock").gameObject;
+
+                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
+                //Logger.LogError("Distance to lock: " + distanceToLock);
+                return distanceToLock < 0.25f;
             }
             //if doorhandle does not exist then it is a valid hit
             else

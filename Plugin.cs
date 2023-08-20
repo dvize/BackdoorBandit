@@ -10,8 +10,8 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.6.0")]
-    [BepInDependency("com.spt-aki.core", "3.7.0")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.6.1")]
+    [BepInDependency("com.spt-aki.core", "3.6.1")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
