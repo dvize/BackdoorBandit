@@ -204,7 +204,7 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct358 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct353 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
             try
@@ -268,7 +268,7 @@ namespace BackdoorBandit
                                 Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Door");
                                 door = collider.GetComponentInParent<Door>();
                                 var tempPlayer = damageInfo.Player.AIData.Player;
-                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(EInteractionType.Breach), null, tempPlayer);
+                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new GClass2846(EInteractionType.Breach), null, tempPlayer);
                             }
                         }
                     }
@@ -297,7 +297,7 @@ namespace BackdoorBandit
                                 var player = damageInfo.Player.AIData.Player;
                                 Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
                                 //open door and load correctly
-                                Singleton<GClass519>.Instance.PlaySound(player, player.Position, GClass455.Core.SOUND_DOOR_BREACH_METERS, AISoundType.step);
+                                Singleton<GClass635>.Instance.PlaySound(player, player.Position, Singleton<GClass563>.Instance.SOUND_DOOR_BREACH_METERS, AISoundType.step);
 
                                 carTrunk = collider.GetComponentInParent<Trunk>();
                                 //grab private method_2 from WorldInteractiveObject carTrunk
@@ -334,7 +334,7 @@ namespace BackdoorBandit
                                 var player = damageInfo.Player.AIData.Player;
                                 Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
                                 //open door and load correctly
-                                Singleton<GClass519>.Instance.PlaySound(player, player.Position, GClass455.Core.SOUND_DOOR_BREACH_METERS, AISoundType.step);
+                                Singleton<GClass635>.Instance.PlaySound(player, player.Position, Singleton<GClass563>.Instance.SOUND_DOOR_BREACH_METERS, AISoundType.step);
                                 lootContainer = collider.GetComponentInParent<LootableContainer>();
                                 var method_2 = AccessTools.Method(typeof(WorldInteractiveObject), "method_2");
                                 method_2.Invoke(lootContainer, new object[] { EDoorState.Open, true });
