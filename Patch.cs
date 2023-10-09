@@ -12,6 +12,8 @@ using EFT.InventoryLogic;
 using HarmonyLib;
 using UnityEngine;
 
+#pragma warning disable IDE0007
+
 namespace BackdoorBandit
 {
     internal class DoorBreachComponent : MonoBehaviour
@@ -51,7 +53,8 @@ namespace BackdoorBandit
                 doorCount++;
 
                 // We don't want doors that aren't worth breaching.. so either closed doors or locked doors or breach doors.
-                if (door.DoorState != EDoorState.Shut && door.DoorState != EDoorState.Locked && door.DoorState != EDoorState.Breaching)
+                // Added open because i want to be able to shut open doors and still blast open
+                if (door.DoorState != EDoorState.Shut && door.DoorState != EDoorState.Locked && door.DoorState != EDoorState.Breaching && door.DoorState != EDoorState.Open)
                 {
                     invalidStateCount++;
                     return;
@@ -199,12 +202,11 @@ namespace BackdoorBandit
         private static Door door;
         private static Trunk carTrunk;
         private static LootableContainer lootContainer;
-        private static DoorHandle doorHandle;
         protected override MethodBase GetTargetMethod() => typeof(BallisticCollider).GetMethod(nameof(BallisticCollider.ApplyHit));
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct353 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct358 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
             try
@@ -257,13 +259,16 @@ namespace BackdoorBandit
                             //check if isCarTrunk is openable
                             if (hitpoints.hitpoints <= 0)
                             {
-                                var player = damageInfo.Player.AIData.Player;
-                                
-                                //open door and load correctly
                                 carTrunk = collider.GetComponentInParent<Trunk>();
-                                carTrunk.DoorState = EDoorState.Shut;
-                               
-                                player.CurrentManagedState.ExecuteDoorInteraction(carTrunk, new GClass2846(EInteractionType.Open), null, player);
+                                var player = damageInfo.Player.AIData.Player;
+
+                                //open door and load correctly only unless its already open from EDoorState.Open
+                                if (carTrunk.DoorState != EDoorState.Open)
+                                {
+                                    carTrunk.DoorState = EDoorState.Shut;
+                                    player.CurrentManagedState.ExecuteDoorInteraction(carTrunk, new InteractionResult(EInteractionType.Open), null, player);
+                                }
+                                
                             }
                         }
                     }
@@ -292,12 +297,17 @@ namespace BackdoorBandit
                             if (hitpoints.hitpoints <= 0)
                             {
                                 var player = damageInfo.Player.AIData.Player;
+                                lootContainer = collider.GetComponentInParent<LootableContainer>();
                                 
                                 //open door and load correctly
-                                lootContainer = collider.GetComponentInParent<LootableContainer>();
-                                lootContainer.DoorState = EDoorState.Shut;
+                                if(lootContainer.DoorState != EDoorState.Open)
+                                {
+                                    lootContainer.DoorState = EDoorState.Shut;
 
-                                player.CurrentManagedState.ExecuteDoorInteraction(lootContainer, new GClass2846(EInteractionType.Open), null, player);
+                                    player.CurrentManagedState.ExecuteDoorInteraction(lootContainer, new InteractionResult(EInteractionType.Open), null, player);
+                                }
+
+                                
                             }
                         }
                     }
@@ -328,8 +338,12 @@ namespace BackdoorBandit
                                 //open door and load correctly
                                 Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Door");
                                 door = collider.GetComponentInParent<Door>();
-                                var tempPlayer = damageInfo.Player.AIData.Player;
-                                tempPlayer.CurrentManagedState.ExecuteDoorInteraction(door, new GClass2846(EInteractionType.Breach), null, tempPlayer);
+
+                                if(door.DoorState != EDoorState.Open)
+                                {
+                                    var player = damageInfo.Player.AIData.Player;
+                                    player.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(EInteractionType.Breach), null, player);
+                                }
                             }
                         }
                     }
