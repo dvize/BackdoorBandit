@@ -206,7 +206,7 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct358 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct357 shotID)
         {
             //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
             try
