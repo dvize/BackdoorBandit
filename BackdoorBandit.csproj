@@ -116,8 +116,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigurationManagerAttributes.cs" />
-    <Compile Include="Plugin.cs" />
+    <Compile Include="DamageUtility.cs" />
     <Compile Include="Patch.cs" />
+    <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VersionChecker\TarkovVersion.cs" />
   </ItemGroup>
@@ -134,12 +135,12 @@ ping -n  2 127.0.0.1 &gt;NUL
 powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File $(ProjectDir)\VersionChecker\setbuild.ps1</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetPath)" "F:\SPT-AKI-DEV\BepInEx\plugins\$(TargetName).dll"
+    <PostBuildEvent>copy "$(TargetPath)" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).dll"
 
 if $(ConfigurationName) == Debug (
-    copy "$(TargetDir)$(TargetName).pdb" "F:\SPT-AKI-DEV\BepInEx\plugins\$(TargetName).pdb"
+    copy "$(TargetDir)$(TargetName).pdb" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).pdb"
 ) else (
-    del "F:\SPT-AKI-DEV\BepInEx\plugins\$(TargetName).pdb"
+    del "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).pdb"
 )
 </PostBuildEvent>
   </PropertyGroup>

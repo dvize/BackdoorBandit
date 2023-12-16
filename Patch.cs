@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Aki.Reflection.Patching;
 using BepInEx.Logging;
@@ -8,17 +9,33 @@ using DoorBreach;
 using EFT;
 using EFT.Ballistics;
 using EFT.Interactive;
-using EFT.InventoryLogic;
-using HarmonyLib;
+using Newtonsoft.Json;
 using UnityEngine;
 
-#pragma warning disable IDE0007
+#pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable IDE0007 // Use implicit type
 
 namespace BackdoorBandit
 {
     internal class DoorBreachComponent : MonoBehaviour
-    { //also all stolen from drakiaxyz
-        protected static ManualLogSource Logger
+    {
+        private static int doorCount = 0;
+        private static int invalidStateCount = 0;
+        private static int inoperableCount = 0;
+        private static int invalidLayerCount = 0;
+        private static int containerCount = 0;
+        private static int invalidContainers = 0;
+        private static int inoperatableContainers = 0;
+        private static int invalidContainerLayer = 0;
+        private static int trunkCount = 0;
+        private static int invalidCarTrunks = 0;
+        private static int inoperatableTrunks = 0;
+        private static int invalidTrunkLayer = 0;
+
+        internal static HashSet<string> GrenadeLaunchers = new HashSet<string>();
+        internal static HashSet<string> MeleeWeapons = new HashSet<string>();
+
+        internal static ManualLogSource Logger
         {
             get; private set;
         }
@@ -33,145 +50,139 @@ namespace BackdoorBandit
 
         public void Awake()
         {
-            int doorCount = 0;
+            doorCount = 0;
+            invalidStateCount = 0;
+            inoperableCount = 0;
+            invalidLayerCount = 0;
+            containerCount = 0;
+            invalidContainers = 0;
+            inoperatableContainers = 0;
+            invalidContainerLayer = 0;
+            trunkCount = 0;
+            invalidCarTrunks = 0;
+            inoperatableTrunks = 0;
+            invalidTrunkLayer = 0;
+
+            LoadHashSetFromJson(GrenadeLaunchers, "GrenadeLaunchers.json");
+            LoadHashSetFromJson(MeleeWeapons, "MeleeWeapons.json");
+
+            ProcessObjectsOfType<Door>("Doors", DoorBreachPlugin.interactiveLayer);
+            ProcessObjectsOfType<LootableContainer>("Containers", DoorBreachPlugin.interactiveLayer);
+            ProcessObjectsOfType<Trunk>("Trunks", DoorBreachPlugin.interactiveLayer);
+
+            LogStatistics("Doors", doorCount, invalidStateCount, inoperableCount, invalidLayerCount);
+            LogStatistics("Containers", containerCount, invalidContainers, inoperatableContainers, invalidContainerLayer);
+            LogStatistics("Trunks", trunkCount, invalidCarTrunks, inoperatableTrunks, invalidTrunkLayer);
+        }
+
+        private void ProcessObjectsOfType<T>(string objectType, int interactiveLayer) where T : Component
+        {
+            int count = 0;
+            int invalidCount = 0;
             int inoperableCount = 0;
             int invalidLayerCount = 0;
-            int invalidStateCount = 0;
 
-            int containerCount = 0;
-            int invalidContainers = 0;
-            int inoperatableContainers = 0;
-            int invalidContainerLayer = 0;
-
-            int trunkCount = 0;
-            int invalidCarTrunks = 0;
-            int inoperatableTrunks = 0;
-            int invalidTrunkLayer = 0;
-
-            FindObjectsOfType<Door>().ExecuteForEach(door =>
+            FindObjectsOfType<T>().ExecuteForEach(obj =>
             {
-                doorCount++;
+                count++;
 
-                // We don't want doors that aren't worth breaching.. so either closed doors or locked doors or breach doors.
-                // Added open because i want to be able to shut open doors and still blast open
-                if (door.DoorState != EDoorState.Shut && door.DoorState != EDoorState.Locked && door.DoorState != EDoorState.Breaching && door.DoorState != EDoorState.Open)
-                {
-                    invalidStateCount++;
+                if (!IsValidObject(obj, ref invalidCount, ref inoperableCount, ref invalidLayerCount, interactiveLayer))
                     return;
-                }
 
-                // We don't support non-operatable doors
-                if (!door.Operatable)
+                var randHitPoints = UnityEngine.Random.Range(DoorBreachPlugin.MinHitPoints.Value, DoorBreachPlugin.MaxHitPoints.Value);
+                var hitpoints = obj.gameObject.GetOrAddComponent<Hitpoints>();
+                hitpoints.hitpoints = randHitPoints;
+
+                if (obj is Door door)
                 {
-                    inoperableCount++;
-                    return;
+                    door.OnEnable();
                 }
-
-                // We don't support doors that aren't on the "Interactive" layer
-                if (door.gameObject.layer != DoorBreachPlugin.interactiveLayer)
+                else if (obj is LootableContainer container)
                 {
-                    invalidLayerCount++;
-                    return;
+                    container.OnEnable();
                 }
-
-                // Create a random number of hitpoints
-                var randhitpoints = UnityEngine.Random.Range(100, 200);
-
-                //add hitpoints component to door
-                var hitpoints = door.gameObject.GetOrAddComponent<Hitpoints>();
-
-                hitpoints.hitpoints = randhitpoints;
-
-                door.OnEnable();
-
+                else if (obj is Trunk trunk)
+                {
+                    trunk.OnEnable();
+                }
             });
 
-            FindObjectsOfType<LootableContainer>().ExecuteForEach(container =>
+            LogStatistics(objectType, count, invalidCount, inoperableCount, invalidLayerCount);
+        }
+
+        private bool IsOperatable<T>(T obj) where T : Component
+        {
+            if (obj is Door door)
             {
-                containerCount++;
-
-                // We only really care about locked containers
-                if (container.DoorState != EDoorState.Shut && container.DoorState != EDoorState.Locked && container.DoorState != EDoorState.Breaching)
-                {
-                    invalidContainers++;
-                    return;
-                }
-
-                // We don't support non-operatable containers
-                if (!container.Operatable)
-                {
-                    inoperatableContainers++;
-                    return;
-                }
-
-                // We don't support containers that aren't on the "Interactive" layer
-                if (container.gameObject.layer != DoorBreachPlugin.interactiveLayer)
-                {
-                    invalidContainerLayer++;
-                    return;
-                }
-
-                // Create a random number of hitpoints
-                var randhitpoints = UnityEngine.Random.Range(100, 200);
-
-                //add hitpoints component to door
-                var hitpoints = container.gameObject.GetOrAddComponent<Hitpoints>();
-
-                hitpoints.hitpoints = randhitpoints;
-
-                container.OnEnable();
-                
-            });
-
-            FindObjectsOfType<Trunk>().ExecuteForEach(trunk =>
+                return door.Operatable;
+            }
+            else if (obj is LootableContainer container)
             {
-                trunkCount++;
+                return container.Operatable;
+            }
+            else if (obj is Trunk trunk)
+            {
+                return trunk.Operatable;
+            }
 
-                // We only really care about locked containers
-                if (trunk.DoorState != EDoorState.Shut && trunk.DoorState != EDoorState.Locked && trunk.DoorState != EDoorState.Breaching)
-                {
-                    invalidCarTrunks++;
-                    return;
-                }
+            // Default case: assume operatable if not one of the specific types
+            return true;
+        }
 
-                // We don't support non-operatable containers
-                if (!trunk.Operatable)
-                {
-                    inoperatableTrunks++;
-                    return;
-                }
+        private bool IsValidObject<T>(T obj, ref int invalidCount, ref int inoperableCount, ref int invalidLayerCount, int interactiveLayer) where T : Component
+        {
+            if (obj is Door door && !IsValidDoorState(door))
+            {
+                invalidCount++;
+                return false;
+            }
 
-                // We don't support containers that aren't on the "Interactive" layer
-                if (trunk.gameObject.layer != DoorBreachPlugin.interactiveLayer)
-                {
-                    invalidTrunkLayer++;
-                    return;
-                }
+            if (obj is LootableContainer container && !IsValidContainerState(container))
+            {
+                invalidCount++;
+                return false;
+            }
 
-                // Create a random number of hitpoints
-                var randhitpoints = UnityEngine.Random.Range(100, 200);
+            if (obj is Trunk trunk && !IsValidTrunkState(trunk))
+            {
+                invalidCount++;
+                return false;
+            }
 
-                //add hitpoints component to door
-                var hitpoints = trunk.gameObject.GetOrAddComponent<Hitpoints>();
+            if (!IsOperatable(obj))
+            {
+                inoperableCount++;
+                return false;
+            }
 
-                hitpoints.hitpoints = randhitpoints;
+            if (!IsValidLayer(obj, interactiveLayer))
+            {
+                invalidLayerCount++;
+                return false;
+            }
 
-                trunk.OnEnable();
-                
-            });
+            return true;
+        }
 
-            Logger.LogInfo($"Total Doors: {doorCount}");
-            Logger.LogInfo($"Invalid State Doors: {invalidStateCount}");
-            Logger.LogInfo($"Inoperable Doors: {inoperableCount}");
-            Logger.LogInfo($"Invalid Layer Doors: {invalidLayerCount}");
-            Logger.LogInfo($"Total Containers: {containerCount}");
-            Logger.LogInfo($"Invalid State Containers: {invalidContainers}");
-            Logger.LogInfo($"Inoperable Containers: {inoperatableContainers}");
-            Logger.LogInfo($"Invalid Layer Containers: {invalidContainerLayer}");
-            Logger.LogInfo($"Total Trunks: {trunkCount}");
-            Logger.LogInfo($"Invalid State Trunks: {invalidCarTrunks}");
-            Logger.LogInfo($"Inoperable Trunks: {inoperatableTrunks}");
-            Logger.LogInfo($"Invalid Layer Trunks: {invalidTrunkLayer}");
+        private bool IsValidDoorState(Door door) =>
+            door.DoorState == EDoorState.Shut || door.DoorState == EDoorState.Locked || door.DoorState == EDoorState.Breaching || door.DoorState == EDoorState.Open;
+
+        private bool IsValidContainerState(LootableContainer container) =>
+            container.DoorState == EDoorState.Shut || container.DoorState == EDoorState.Locked || container.DoorState == EDoorState.Breaching;
+
+        private bool IsValidTrunkState(Trunk trunk) =>
+            trunk.DoorState == EDoorState.Shut || trunk.DoorState == EDoorState.Locked || trunk.DoorState == EDoorState.Breaching;
+
+        private bool IsValidLayer<T>(T obj, int interactiveLayer) where T : Component =>
+            obj.gameObject.layer == interactiveLayer;
+
+
+        private void LogStatistics(string objectType, int totalCount, int invalidStateCount, int inoperableCount, int invalidLayerCount)
+        {
+            Logger.LogInfo($"Total {objectType}: {totalCount}");
+            Logger.LogInfo($"Invalid State {objectType}: {invalidStateCount}");
+            Logger.LogInfo($"Inoperable {objectType}: {inoperableCount}");
+            Logger.LogInfo($"Invalid Layer {objectType}: {invalidLayerCount}");
         }
 
         public static void Enable()
@@ -182,9 +193,23 @@ namespace BackdoorBandit
                 gameWorld.GetOrAddComponent<DoorBreachComponent>();
             }
         }
+        private void LoadHashSetFromJson(HashSet<string> hashSet, string jsonFileName)
+        {
+            string dllDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string jsonPath = Path.Combine(dllDirectory, jsonFileName);
+
+            if (File.Exists(jsonPath))
+            {
+                string jsonContent = File.ReadAllText(jsonPath);
+                hashSet = JsonConvert.DeserializeObject<HashSet<string>>(jsonContent);
+            }
+            else
+            {
+                Logger.LogError($"JSON file not found: {jsonFileName}");
+            }
+        }
     }
 
-    //create hitpoints unityengine.component
     internal class Hitpoints : MonoBehaviour
     {
         public float hitpoints;
@@ -208,403 +233,158 @@ namespace BackdoorBandit
         [PatchPostfix]
         public static void PatchPostFix(DamageInfo damageInfo, GStruct357 shotID)
         {
-            //Logger.LogInfo("BackdoorBandit: Inside of the ApplyHit Method");
+            //try catch for random things applying damage that we don't want
             try
             {
-                //only want to apply damage to doors if the player is the one shooting and not a lampcontroller related
-                if (damageInfo.Player != null
-                    && damageInfo.Player.iPlayer.IsYourPlayer
-                    && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
-                    && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
-                    && damageInfo.DamageType != EDamageType.Explosion)
+                if (ShouldApplyDamage(damageInfo))
                 {
-                    //setup colliders and check if we have the right components
-                    collider = damageInfo.HittedBallisticCollider as BallisticCollider;
-
-                    isDoor = false;
-                    isCarTrunk = false;
-                    isLootableContainer = false;
-                    hasHitPoints = false;
-
-                    //automatically set valid damage if plebmode on to skip checks
-                    validDamage = DoorBreachPlugin.PlebMode.Value ? true : false;
-
-
-                    //check if its a door, carTrunk, or LootableContainer we hit
-                    isCarTrunk = collider.GetComponentInParent<Trunk>() != null;
-                    isLootableContainer = collider.GetComponentInParent<LootableContainer>() != null;
-                    isDoor = collider.GetComponentInParent<Door>() != null;
-
-                    //check if door we found has hitpoints
-                    hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
-
-                    if (isCarTrunk && hasHitPoints)
-                    {
-                        //check if weapons or ammo types are valid only if pleb mode is false
-                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenCarDoors.Value)
-                        {
-                            checkCarWeaponAndAmmo(damageInfo, ref validDamage);
-                        }
-
-                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
-
-                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
-
-                        if (validDamage)
-                        {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Car Trunk");
-                            //subtract damage
-                            hitpoints.hitpoints -= damageInfo.Damage;
-
-                            //check if isCarTrunk is openable
-                            if (hitpoints.hitpoints <= 0)
-                            {
-                                carTrunk = collider.GetComponentInParent<Trunk>();
-                                var player = damageInfo.Player.AIData.Player;
-
-                                //open door and load correctly only unless its already open from EDoorState.Open
-                                if (carTrunk.DoorState != EDoorState.Open)
-                                {
-                                    carTrunk.DoorState = EDoorState.Shut;
-                                    player.CurrentManagedState.ExecuteDoorInteraction(carTrunk, new InteractionResult(EInteractionType.Open), null, player);
-                                }
-                                
-                            }
-                        }
-                    }
-
-                    if (isLootableContainer && hasHitPoints)
-                    {
-                        //we know door was hit and is a valid door
-
-                        //check if weapons or ammo types are valid only if pleb mode is false
-                        if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenLootableContainers.Value)
-                        {
-                            checkLootableContainerWeaponAndAmmo(damageInfo, ref validDamage);
-                        }
-
-                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
-
-                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
-
-                        if (validDamage)
-                        {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Lootable Container");
-                            //subtract damage
-                            hitpoints.hitpoints -= damageInfo.Damage;
-
-                            //check if door is openable
-                            if (hitpoints.hitpoints <= 0)
-                            {
-                                var player = damageInfo.Player.AIData.Player;
-                                lootContainer = collider.GetComponentInParent<LootableContainer>();
-                                
-                                //open door and load correctly
-                                if(lootContainer.DoorState != EDoorState.Open)
-                                {
-                                    lootContainer.DoorState = EDoorState.Shut;
-
-                                    player.CurrentManagedState.ExecuteDoorInteraction(lootContainer, new InteractionResult(EInteractionType.Open), null, player);
-                                }
-
-                                
-                            }
-                        }
-                    }
-
-                    if (isDoor && hasHitPoints)
-                    {
-                        //we know door was hit and is a valid door
-
-                        //check if weapons or ammo types are valid only if pleb mode is false
-                        if (!DoorBreachPlugin.PlebMode.Value)
-                        {
-                            checkDoorWeaponAndAmmo(damageInfo, ref validDamage);
-                        }
-
-                        //Logger.LogInfo($"BackdoorBandit: validDamage is {validDamage}");
-
-                        hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
-
-                        if (validDamage)
-                        {
-                            //Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints");
-                            //subtract damage
-                            hitpoints.hitpoints -= damageInfo.Damage;
-
-                            //check if door is openable
-                            if (hitpoints.hitpoints <= 0)
-                            {
-                                //open door and load correctly
-                                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to Door");
-                                door = collider.GetComponentInParent<Door>();
-
-                                if(door.DoorState != EDoorState.Open)
-                                {
-                                    var player = damageInfo.Player.AIData.Player;
-                                    player.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(EInteractionType.Breach), null, player);
-                                }
-                            }
-                        }
-                    }
+                    HandleDamageForEntity(damageInfo, damageInfo.HittedBallisticCollider as BallisticCollider);
                 }
             }
             catch { }
         }
 
-
-        private static HashSet<string> grenadeLaunchers = new HashSet<string>
+        private static bool ShouldApplyDamage(DamageInfo damageInfo)
         {
-            "62e7e7bbe6da9612f743f1e0", //GP-25 40mm underbarrel grenade launcher
-            "6357c98711fb55120211f7e1", //M203 40mm underbarrel grenade launcher
-            "5e81ebcd8e146c7080625e15", //FN40GL Mk2 40mm grenade launcher
-            "5d52cc5ba4b9367408500062", //AGS-30 30x29mm automatic grenade launcher
-            "6275303a9f372d6ea97f9ec7" //Milkor M32A1 MSGL 40mm grenade launcher
-        };
+            return damageInfo.Player != null
+                && damageInfo.Player.iPlayer.IsYourPlayer
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Lamp
+                && damageInfo.HittedBallisticCollider.HitType != EFT.NetworkPackets.EHitType.Window
+                && damageInfo.DamageType != EDamageType.Explosion;
+        }
 
-        private static HashSet<string> validMeleeWeapons = new HashSet<string>
+        private static void HandleDamageForEntity(DamageInfo damageInfo, BallisticCollider collider)
         {
-            "63a0b208f444d32d6f03ea1e", //FierceBlowSledgeHammer
-            "6087e570b998180e9f76dc24", //SuperforsDeadBlowHammer
-            "5c07df7f0db834001b73588a", //FreemanCrowbar
-            "5bffe7930db834001b734a39", //CrashAxe
-            "57cd379a24597778e7682ecf" // Kiba Arms Tactical Tomahawk
-        };
+            bool isCarTrunk = false;
+            bool isLootableContainer = false;
+            bool isDoor = false;
+            bool hasHitPoints = false;
+            bool validDamage = DoorBreachPlugin.PlebMode.Value || false;
 
-        private static void checkDoorWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
-        {
-            var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
-            var weapon = damageInfo.Weapon.TemplateId;
-            
-            //Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
-
-            if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
+            if (collider != null)
             {
-                if (damageInfo.DamageType == EDamageType.Melee && validMeleeWeapons.Contains(weapon) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
+                isCarTrunk = collider.GetComponentInParent<Trunk>() != null;
+                isLootableContainer = collider.GetComponentInParent<LootableContainer>() != null;
+                isDoor = collider.GetComponentInParent<Door>() != null;
+                hasHitPoints = collider.GetComponentInParent<Hitpoints>() != null;
+            }
+
+            if (isCarTrunk && hasHitPoints)
+            {
+                HandleCarTrunkDamage(damageInfo, collider, ref validDamage);
+            }
+
+            if (isLootableContainer && hasHitPoints)
+            {
+                HandleLootableContainerDamage(damageInfo, collider, ref validDamage);
+            }
+
+            if (isDoor && hasHitPoints)
+            {
+                HandleDoorDamage(damageInfo, collider, ref validDamage);
+            }
+        }
+
+        #region DamageApplication
+        private static void HandleCarTrunkDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        {
+            if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenCarDoors.Value)
+            {
+                DamageUtility.CheckCarWeaponAndAmmo(damageInfo, ref validDamage);
+            }
+
+            HandleDamage(damageInfo, collider, ref validDamage, "Car Trunk", (hitpoints, entity) =>
+            {
+                if (hitpoints.hitpoints <= 0)
                 {
-                    validDamage = true;
+                    var carTrunk = entity.GetComponentInParent<Trunk>();
+                    OpenDoorIfNotAlreadyOpen(carTrunk, damageInfo.Player.AIData.Player, EInteractionType.Open);
                 }
+            });
+        }
 
-                return;
+        private static void HandleLootableContainerDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        {
+            if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenLootableContainers.Value)
+            {
+                DamageUtility.CheckLootableContainerWeaponAndAmmo(damageInfo, ref validDamage);
             }
 
-            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
-
-            if (material == MaterialType.MetalThin || material == MaterialType.MetalThick)
+            HandleDamage(damageInfo, collider, ref validDamage, "Lootable Container", (hitpoints, entity) =>
             {
-                if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
+                if (hitpoints.hitpoints <= 0)
                 {
-                    //Logger.LogInfo($"BB: HE round detected on metal door. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                    validDamage = true;
-                    return;
+                    var lootContainer = entity.GetComponentInParent<LootableContainer>();
+                    OpenDoorIfNotAlreadyOpen(lootContainer, damageInfo.Player.AIData.Player, EInteractionType.Open);
                 }
-            }
-            else
-            {
-                //Logger.LogInfo($"BB: bullet use detected on non metal. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                //Logger.LogInfo($"BB: bulletTemplate is {bulletTemplate._name.Localized()}");
+            });
+        }
 
-                //check if grenadelauncher and HE round
-                if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
+        private static void HandleDoorDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        {
+            if (!DoorBreachPlugin.PlebMode.Value)
+            {
+                DamageUtility.CheckDoorWeaponAndAmmo(damageInfo, ref validDamage);
+            }
+
+            HandleDamage(damageInfo, collider, ref validDamage, "Door", (hitpoints, entity) =>
+            {
+                if (hitpoints.hitpoints <= 0)
                 {
-                    //Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                    validDamage = true;
+                    var door = entity.GetComponentInParent<Door>();
+                    OpenDoorIfNotAlreadyOpen(door, damageInfo.Player.AIData.Player, EInteractionType.Breach);
                 }
+            });
+        }
 
-                //check if shotgun and slug round
-                if (isShotgun(damageInfo) && isBreachingSlug(bulletTemplate) && isValidDoorLockHit(damageInfo))
+        private static void HandleDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage, string entityName, Action<Hitpoints, GameObject> onHitpointsZero)
+        {
+            var hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
+
+            if (validDamage)
+            {
+                Logger.LogInfo($"BackdoorBandit: Applying Hit Damage {damageInfo.Damage} hitpoints to {entityName}");
+                hitpoints.hitpoints -= damageInfo.Damage;
+
+                onHitpointsZero?.Invoke(hitpoints, collider.gameObject);
+            }
+        }
+        private static void OpenDoorIfNotAlreadyOpen<T>(T entity, Player player, EInteractionType interactionType) where T : class
+        {
+            if (entity is Door door)
+            {
+                if (door.DoorState != EDoorState.Open)
                 {
-                    //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                    damageInfo.Damage = 200;
-                    validDamage = true;
+                    door.DoorState = EDoorState.Shut;
+                    player.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(interactionType), null, player);
                 }
-
             }
-        }
 
-        private static void checkCarWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
-        {
-            //for car doors we don't care about material.  only if it's a shotgun with the breaching round used.
-            var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
-            var weapon = damageInfo.Weapon.TemplateId;
-
-            //Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
-
-            if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
+            if (entity is LootableContainer container)
             {
-                if (damageInfo.DamageType == EDamageType.Melee && validMeleeWeapons.Contains(weapon) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
+                if (container.DoorState != EDoorState.Open)
                 {
-                    validDamage = true;
+                    container.DoorState = EDoorState.Shut;
+                    player.CurrentManagedState.ExecuteDoorInteraction(container, new InteractionResult(interactionType), null, player);
                 }
-
-                return;
             }
-
-            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
-
-            //check if grenadelauncher and HE round
-            if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
+            if (entity is Trunk trunk)
             {
-                //Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                validDamage = true;
-            }
 
-            //check if shotgun and slug round
-            if (isShotgun(damageInfo) && isBreachingSlug(bulletTemplate) && isValidCarTrunkLockHit(damageInfo))
-            {
-                //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                damageInfo.Damage = 200;
-                validDamage = true;
-            }
-
-            
-        }
-
-        private static void checkLootableContainerWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
-        {
-            //for lootable containers we don't care about material.  only if it's a shotgun with the breaching round used.
-            var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
-            var weapon = damageInfo.Weapon.TemplateId;
-
-            //Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
-
-            if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
-            {
-                if (damageInfo.DamageType == EDamageType.Melee && validMeleeWeapons.Contains(weapon) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
+                if (trunk.DoorState != EDoorState.Open)
                 {
-                    validDamage = true;
+
+                    trunk.DoorState = EDoorState.Shut;
+                    player.CurrentManagedState.ExecuteDoorInteraction(trunk, new InteractionResult(interactionType), null, player);
                 }
-
-                return;
             }
-
-            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
-
-            //check if grenadelauncher and HE round
-            if (grenadeLaunchers.Contains(weapon) && (isHEGrenade(bulletTemplate) || isShrapnel(bulletTemplate)))
-            {
-                //Logger.LogInfo($"BB: HE round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                validDamage = true;
-            }
-
-            //check if shotgun and slug round
-            if (isShotgun(damageInfo) && isBreachingSlug(bulletTemplate) && isValidContainerLockHit(damageInfo))
-            {
-                //Logger.LogInfo($"BB: Slug round detected on {material} material. weapon used: {damageInfo.Weapon.LocalizedName()}");
-                damageInfo.Damage = 200;
-                validDamage = true;
-            }
-
-
         }
 
 
-        private static bool isShrapnel(AmmoTemplate bulletTemplate)
-        {
-            Logger.LogDebug("BB: detected grenade shrapnel");
+        #endregion
 
-            //check if bulletTemplate is shrapnel and we only want grenade shrapnel not bullet shrapnel
-            return (bulletTemplate.FragmentType == "5485a8684bdc2da71d8b4567");
-        }
 
-        private static bool isHEGrenade(AmmoTemplate bulletTemplate)
-        {
-            //Logger.LogDebug("BB: detected HE Grenade");
 
-            //check if bulletTemplate is HE Grenade if has ExplosionStrength and only one projectile
-            return (bulletTemplate.ExplosionStrength > 0
-                && bulletTemplate.ProjectileCount == 1);
-        }
-
-        private static bool isBreachingSlug(AmmoTemplate bulletTemplate)
-        {
-            return (bulletTemplate._id == "doorbreacher");
-        }
-        private static bool isShotgun(DamageInfo damageInfo)
-        {
-            //Logger.LogDebug("BB: detected Shotgun: " + (damageInfo.Weapon as Weapon).WeapClass == "shotgun");
-
-            //check if weapon is a shotgun
-
-            return ((damageInfo.Weapon as Weapon)?.WeapClass == "shotgun");
-        }
-        private static bool isValidDoorLockHit(DamageInfo damageInfo)
-        {
-            //check if door handle area was hit
-            Collider col = damageInfo.HitCollider;
-
-            //if doorhandle exists and is hit
-            if (col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>() != null)
-            {
-                //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                Vector3 localHitPoint = col.transform.InverseTransformPoint(damageInfo.HitPoint);
-                DoorHandle doorHandle = col.GetComponentInParent<Door>().GetComponentInChildren<DoorHandle>();
-                Vector3 doorHandleLocalPos = doorHandle.transform.localPosition;
-                float distanceToHandle = Vector3.Distance(localHitPoint, doorHandleLocalPos);
-                return distanceToHandle < 0.25f;
-            }
-            //if doorhandle does not exist then it is a valid hit
-            else
-            {
-                //Logger.LogDebug("BB: doorhandle does not exist so valid hit");
-                return true;
-            }
-
-        }
-
-        private static bool isValidCarTrunkLockHit(DamageInfo damageInfo)
-        {
-            //check if door handle area was hit
-            Collider col = damageInfo.HitCollider;
-
-            //if doorhandle exists and is hit
-            if (col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>() != null)
-            {
-                //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                var gameobj = col.GetComponentInParent<Trunk>().gameObject;
-               
-                //find child game object Lock from gameobj
-                var carLockObj = gameobj.transform.Find("CarLock_Hand").gameObject;
-                var lockObj = carLockObj.transform.Find("Lock").gameObject;
-
-                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
-                //Logger.LogError("Distance to lock: " + distanceToLock);
-                return distanceToLock < 0.25f;
-            }
-            //if doorhandle does not exist then it is a valid hit
-            else
-            {
-                //Logger.LogDebug("BB: doorhandle does not exist so valid hit");
-                return true;
-            }
-
-        }
-
-        private static bool isValidContainerLockHit(DamageInfo damageInfo)
-        {
-            //check if door handle area was hit
-            Collider col = damageInfo.HitCollider;
-
-            //if doorhandle exists and is hit
-            if (col.GetComponentInParent<LootableContainer>().GetComponentInChildren<DoorHandle>() != null)
-            {
-                //Logger.LogDebug("BB: doorhandle exists so checking if hit");
-                var gameobj = col.GetComponentInParent<LootableContainer>().gameObject;
-
-                //find child game object Lock from gameobj
-                var lockObj = gameobj.transform.Find("Lock").gameObject;
-
-                float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
-                //Logger.LogError("Distance to lock: " + distanceToLock);
-                return distanceToLock < 0.25f;
-            }
-            //if doorhandle does not exist then it is a valid hit
-            else
-            {
-                //Logger.LogDebug("BB: doorhandle does not exist so valid hit");
-                return true;
-            }
-
-        }
     }
+
 }

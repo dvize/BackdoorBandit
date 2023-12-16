@@ -10,15 +10,20 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.7.1")]
-    [BepInDependency("com.spt-aki.core", "3.7.1")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.7.2")]
+    [BepInDependency("com.spt-aki.core", "3.7.4")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
+        public static ConfigEntry<bool> SemiPlebMode;
         public static ConfigEntry<bool> OpenLootableContainers;
         public static ConfigEntry<bool> OpenCarDoors;
+        public static ConfigEntry<int> MinHitPoints;
+        public static ConfigEntry<int> MaxHitPoints;
+
 
         public static int interactiveLayer;
+
         private void Awake()
         {
             CheckEftVersion();
@@ -29,7 +34,15 @@ namespace DoorBreach
                 false,
                 new ConfigDescription("Enabled Means No Requirements To Breach Any Door/LootContainer",
                 null,
-                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 3}));
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 4 }));
+
+            SemiPlebMode = Config.Bind(
+                "1. Main Settings",
+                "Semi-Plebmode",
+                false,
+                new ConfigDescription("Enabled Means Any Round Breach Regular Doors, Not Reinforced doors",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 3 }));
 
             OpenLootableContainers = Config.Bind(
                 "1. Main Settings",
@@ -45,6 +58,22 @@ namespace DoorBreach
                 false,
                 new ConfigDescription("If Enabled, can use shotgun breach rounds on car doors",
                 null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
+
+            MinHitPoints = Config.Bind(
+                "2. Hit Points",
+                "Min Hit Points",
+                100,
+                new ConfigDescription("Minimum Hit Points Required To Breach, Default 100",
+                new AcceptableValueRange<int>(0, 500),
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 2 }));
+
+            MaxHitPoints = Config.Bind(
+                "2. Hit Points",
+                "Max Hit Points",
+                200,
+                new ConfigDescription("Maximum Hit Points Required To Breach, Default 200",
+                new AcceptableValueRange<int>(0, 500),
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             new NewGamePatch().Enable();
