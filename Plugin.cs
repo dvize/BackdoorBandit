@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Aki.Reflection.Patching;
+using BackdoorBandit.Patches;
 using BepInEx;
 using BepInEx.Configuration;
 using EFT;
@@ -10,8 +11,8 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.7.2")]
-    [BepInDependency("com.spt-aki.core", "3.7.4")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.0")]
+    //[BepInDependency("com.spt-aki.core", "3.7.6")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
@@ -65,7 +66,7 @@ namespace DoorBreach
                 "Min Hit Points",
                 100,
                 new ConfigDescription("Minimum Hit Points Required To Breach, Default 100",
-                new AcceptableValueRange<int>(0, 500),
+                new AcceptableValueRange<int>(0, 1000),
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 2 }));
 
             MaxHitPoints = Config.Bind(
@@ -73,11 +74,13 @@ namespace DoorBreach
                 "Max Hit Points",
                 200,
                 new ConfigDescription("Maximum Hit Points Required To Breach, Default 200",
-                new AcceptableValueRange<int>(0, 500),
+                new AcceptableValueRange<int>(0, 2000),
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             new NewGamePatch().Enable();
             new BackdoorBandit.ApplyHit().Enable();
+            new ActionMenuDoorPatch().Enable();
+            new ActionMenuKeyCardPatch().Enable();
 
         }
 
@@ -107,6 +110,7 @@ namespace DoorBreach
             DoorBreachPlugin.interactiveLayer = LayerMask.NameToLayer("Interactive");
 
             BackdoorBandit.DoorBreachComponent.Enable();
+            BackdoorBandit.ExplosiveBreachComponent.Enable();
         }
     }
 }
