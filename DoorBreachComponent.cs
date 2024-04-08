@@ -30,8 +30,11 @@ namespace BackdoorBandit
         private static int inoperatableTrunks = 0;
         private static int invalidTrunkLayer = 0;
 
-        internal static HashSet<string> GrenadeLaunchers = new HashSet<string>();
-        internal static HashSet<string> MeleeWeapons = new HashSet<string>();
+        internal static HashSet<string> GrenadeLaunchers;
+        internal static HashSet<string> MeleeWeapons;
+        internal static HashSet<string> ShotgunWeapons;
+        internal static HashSet<string> OtherWeapons;
+        internal static HashSet<string> ApplicableWeapons;
 
         internal static ManualLogSource Logger
         {
@@ -60,9 +63,17 @@ namespace BackdoorBandit
             invalidCarTrunks = 0;
             inoperatableTrunks = 0;
             invalidTrunkLayer = 0;
+            ApplicableWeapons = new HashSet<string>();
+            OtherWeapons = new HashSet<string>();
+            GrenadeLaunchers = new HashSet<string>();
+            MeleeWeapons = new HashSet<string>();
+            ShotgunWeapons = new HashSet<string>();
 
-            LoadHashSetFromJson(GrenadeLaunchers, "GrenadeLaunchers.json");
-            LoadHashSetFromJson(MeleeWeapons, "MeleeWeapons.json");
+            LoadHashSetFromJson(ref GrenadeLaunchers, "GrenadeLaunchers.json");
+            LoadHashSetFromJson(ref MeleeWeapons, "MeleeWeapons.json");
+            LoadHashSetFromJson(ref ShotgunWeapons, "ShotgunWeapons.json");
+            LoadHashSetFromJson(ref OtherWeapons, "OtherWeapons.json");
+            SetupApplicableWeapons();
 
             ProcessObjectsOfType<Door>("Doors", DoorBreachPlugin.interactiveLayer);
             ProcessObjectsOfType<LootableContainer>("Containers", DoorBreachPlugin.interactiveLayer);
@@ -191,7 +202,7 @@ namespace BackdoorBandit
                 gameWorld.GetOrAddComponent<DoorBreachComponent>();
             }
         }
-        private void LoadHashSetFromJson(HashSet<string> hashSet, string jsonFileName)
+        private void LoadHashSetFromJson(ref HashSet<string> hashSet, string jsonFileName)
         {
             string dllDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             string jsonPath = Path.Combine(dllDirectory, jsonFileName);
@@ -205,6 +216,22 @@ namespace BackdoorBandit
             {
                 Logger.LogError($"JSON file not found: {jsonFileName}");
             }
+        }
+
+        internal static void SetupApplicableWeapons()
+        {
+            ApplicableWeapons.UnionWith(DoorBreachComponent.MeleeWeapons);
+            ApplicableWeapons.UnionWith(DoorBreachComponent.GrenadeLaunchers);
+            ApplicableWeapons.UnionWith(DoorBreachComponent.ShotgunWeapons);
+            ApplicableWeapons.UnionWith(DoorBreachComponent.OtherWeapons);
+#if DEBUG
+            //print out applicable weapons hashes to console
+            Logger.LogInfo("Applicable Weapons:");
+            foreach (var weapon in ApplicableWeapons)
+            {
+                Logger.LogInfo(weapon);
+            }
+#endif
         }
     }
 

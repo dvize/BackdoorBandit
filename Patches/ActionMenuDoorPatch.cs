@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Reflection;
 using Aki.Reflection.Patching;
-using EFT.Interactive;
 using EFT;
+using EFT.Interactive;
 
 namespace BackdoorBandit.Patches
 {
@@ -26,7 +26,7 @@ namespace BackdoorBandit.Patches
                         BackdoorBandit.ExplosiveBreachComponent.StartExplosiveBreach(door, owner.Player);
 
                     }),
-                    Disabled = (!door.IsBreachAngle(owner.Player.Position) || !BackdoorBandit.ExplosiveBreachComponent.IsValidDoorState(door) || 
+                    Disabled = (!door.IsBreachAngle(owner.Player.Position) || !BackdoorBandit.ExplosiveBreachComponent.IsValidDoorState(door) ||
                         !BackdoorBandit.ExplosiveBreachComponent.hasTNTExplosives(owner.Player))
                 });
             }

@@ -11,12 +11,13 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.0")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.1")]
     //[BepInDependency("com.spt-aki.core", "3.7.6")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PlebMode;
         public static ConfigEntry<bool> SemiPlebMode;
+        public static ConfigEntry<bool> BreachingRoundsOpenMetalDoors;
         public static ConfigEntry<bool> OpenLootableContainers;
         public static ConfigEntry<bool> OpenCarDoors;
         public static ConfigEntry<int> MinHitPoints;
@@ -35,13 +36,21 @@ namespace DoorBreach
                 false,
                 new ConfigDescription("Enabled Means No Requirements To Breach Any Door/LootContainer",
                 null,
-                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 4 }));
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 5 }));
 
             SemiPlebMode = Config.Bind(
                 "1. Main Settings",
                 "Semi-Plebmode",
                 false,
                 new ConfigDescription("Enabled Means Any Round Breach Regular Doors, Not Reinforced doors",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 4 }));
+
+            BreachingRoundsOpenMetalDoors = Config.Bind(
+                "1. Main Settings",
+                "Breach Rounds Affects Metal Doors",
+                false,
+                new ConfigDescription("Enabled Means Any Breach Round opens a door",
                 null,
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 3 }));
 
