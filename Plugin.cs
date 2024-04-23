@@ -11,7 +11,7 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.1")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.2")]
     //[BepInDependency("com.spt-aki.core", "3.7.6")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
@@ -22,7 +22,7 @@ namespace DoorBreach
         public static ConfigEntry<bool> OpenCarDoors;
         public static ConfigEntry<int> MinHitPoints;
         public static ConfigEntry<int> MaxHitPoints;
-
+        public static ConfigEntry<int> explosiveTimerInSec;
 
         public static int interactiveLayer;
 
@@ -84,6 +84,14 @@ namespace DoorBreach
                 200,
                 new ConfigDescription("Maximum Hit Points Required To Breach, Default 200",
                 new AcceptableValueRange<int>(0, 2000),
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
+
+            explosiveTimerInSec = Config.Bind(
+                "3. Explosive Timer",
+                "Explosive Timer In Sec",
+                10,
+                new ConfigDescription("Time in seconds for explosive breach to detonate",
+                new AcceptableValueRange<int>(1, 60),
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             new NewGamePatch().Enable();

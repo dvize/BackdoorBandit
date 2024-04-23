@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
 using Comfort.Common;
+using DoorBreach;
 using EFT;
 using EFT.Interactive;
 using EFT.InventoryLogic;
@@ -149,7 +150,7 @@ namespace BackdoorBandit
         private static IEnumerator DelayedExplosion(Door door, Player player, TNTInstance tntInstance)
         {
             // Wait for 10 seconds.
-            yield return new WaitForSeconds(10);
+            yield return new WaitForSeconds(DoorBreachPlugin.explosiveTimerInSec.Value);
 
             // Apply explosion effect
             effectsInstance.EmitGrenade("big_explosion", tntInstance.LootItem.transform.position, Vector3.forward, 15f);
@@ -166,7 +167,7 @@ namespace BackdoorBandit
         }
 
 
-        private static DamageInfo tntDamage()
+        /*private static DamageInfo tntDamage()
         {
             return new DamageInfo
             {
@@ -178,7 +179,7 @@ namespace BackdoorBandit
                 Player = null,
                 IsForwardHit = true
             };
-        }
+        }*/
 
         public static void Enable()
         {
