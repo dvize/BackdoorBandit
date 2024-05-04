@@ -27,7 +27,7 @@ namespace BackdoorBandit.Patches
 
                     }),
                     Disabled = (!door.IsBreachAngle(owner.Player.Position) || !BackdoorBandit.ExplosiveBreachComponent.IsValidDoorState(door) ||
-                        !BackdoorBandit.ExplosiveBreachComponent.hasTNTExplosives(owner.Player))
+                        !BackdoorBandit.ExplosiveBreachComponent.hasC4Explosives(owner.Player))
                 });
             }
         }

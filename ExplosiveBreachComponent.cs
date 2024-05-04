@@ -16,9 +16,10 @@ namespace BackdoorBandit
     {
         internal static Player player;
         internal static GameWorld gameWorld;
-        internal static List<TNTInstance> tntInstances;
+        internal static List<C4Instance> c4Instances;
         private static ExplosiveBreachComponent componentInstance;
-        private static readonly string TNTTemplateId = "60391b0fb847c71012789415";
+        //private static readonly string TNTTemplateId = "60391b0fb847c71012789415";
+        private static readonly string C4ExplosiveId = "6636606320e842b50084e51a";
         private static Vector2 _impactsGagRadius;
         private static Effects effectsInstance;
         private static CameraClass cameraInstance;
@@ -39,7 +40,7 @@ namespace BackdoorBandit
         private void Start()
         {
             //initialize variables
-            tntInstances = new List<TNTInstance>();
+            c4Instances = new List<C4Instance>();
             componentInstance = this;
             gameWorld = Singleton<GameWorld>.Instance;
             player = gameWorld.MainPlayer;
@@ -48,10 +49,10 @@ namespace BackdoorBandit
             cameraInstance = CameraClass.Instance;
             betterAudioInstance = Singleton<BetterAudio>.Instance;
         }
-        internal static bool hasTNTExplosives(Player player)
+        internal static bool hasC4Explosives(Player player)
         {
-            // Search playerItems for first TNT-200 of item.TemplateId 60391b0fb847c71012789415
-            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == "60391b0fb847c71012789415");
+            // Search playerItems for first c4 explosive
+            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
 
             if (foundItem != null)
             {
@@ -66,7 +67,7 @@ namespace BackdoorBandit
 
         internal static void StartExplosiveBreach(Door door, Player player)
         {
-            TryPlaceTNTOnDoor(door, player);
+            TryPlaceC4OnDoor(door, player);
 
             RemoveItemFromPlayerInventory(player);
 
@@ -81,52 +82,50 @@ namespace BackdoorBandit
             }
 
             // Start a coroutine for the most recently placed TNT.
-            if (tntInstances.Any())
+            if (c4Instances.Any())
             {
-                var latestTNTInstance = tntInstances.Last();
-                StartDelayedExplosionCoroutine(door, player, componentInstance, latestTNTInstance);
+                var latestC4Instance = c4Instances.Last();
+                StartDelayedExplosionCoroutine(door, player, componentInstance, latestC4Instance);
             }
         }
 
-        private static void TryPlaceTNTOnDoor(Door door, Player player)
+        private static void TryPlaceC4OnDoor(Door door, Player player)
         {
             var itemFactory = Singleton<ItemFactory>.Instance;
-            var tntItem = itemFactory.CreateItem(MongoID.Generate(), TNTTemplateId, null);
+            var c4Item = itemFactory.CreateItem(MongoID.Generate(), C4ExplosiveId, null);
 
             // Attempt to find the DoorHandle component within the children of the Door GameObject
             DoorHandle doorHandle = door.GetComponentInChildren<DoorHandle>();
             if (doorHandle == null)
             {
                 Logger.LogError("DoorHandle component not found.");
-                return; // Exit if the DoorHandle component is not found
+                return;
             }
 
-            // Use the DoorHandle's position as the base for placing the TNT
             Vector3 handlePosition = doorHandle.transform.position;
 
-            // Position the TNT just in front of the door, near the handle.
-            Vector3 positionOffset = door.transform.forward * -0.13f; // Move the TNT slightly in front of the door based on its forward direction
-            Vector3 tntPosition = handlePosition + positionOffset;
-            tntPosition.y = handlePosition.y;
+            // Determine if the player is in front of or behind the door
+            Vector3 doorToPlayer = player.Transform.position - door.transform.position;
+            bool playerInFront = Vector3.Dot(doorToPlayer, door.transform.forward) > 0;
 
-            // make the TNT lay against the lock and face the player, 
-            Quaternion baseRotation = Quaternion.LookRotation(door.transform.forward, -Vector3.up);
+            // Adjust position to place the C4 above the door handle (lock)
+            Vector3 positionOffset = Vector3.up * 0.2f; // Offset upwards from the handle
+            Vector3 forwardOffset = door.transform.forward * (playerInFront ? -0.05f : 0.05f); // Conditional offset based on player's position
+            Vector3 c4Position = handlePosition + positionOffset + forwardOffset;
 
-            // make the TNT face the player.
-            Vector3 toPlayerFlat = player.Transform.position - tntPosition;
-            toPlayerFlat.y = 0;
-            Quaternion toPlayerRotation = Quaternion.LookRotation(toPlayerFlat);
-            Quaternion rotation = Quaternion.Lerp(baseRotation, toPlayerRotation, 0.5f);
+            // Correct rotation: Face flat against the door
+            Quaternion rotation = Quaternion.LookRotation(playerInFront ? -door.transform.forward : door.transform.forward, Vector3.up); // C4 should face outward correctly depending on player's position
 
-            LootItem lootItem = gameWorld.SetupItem(tntItem, player.InteractablePlayer, tntPosition, rotation);
+            // Place the C4 item in the game world
+            LootItem lootItem = gameWorld.SetupItem(c4Item, player.InteractablePlayer, c4Position, rotation);
 
-            tntInstances.Add(new TNTInstance(lootItem, tntPosition));
+            c4Instances.Add(new C4Instance(lootItem, c4Position));
         }
 
 
         private static void RemoveItemFromPlayerInventory(Player player)
         {
-            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == TNTTemplateId);
+            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
             if (foundItem == null) return;
 
             var traderController = (TraderControllerClass)foundItem.Parent.GetOwner();
@@ -142,28 +141,28 @@ namespace BackdoorBandit
             discardResult.Value.RaiseEvents(traderController, CommandStatus.Succeed);
         }
 
-        private static void StartDelayedExplosionCoroutine(Door door, Player player, MonoBehaviour monoBehaviour, TNTInstance tntInstance)
+        private static void StartDelayedExplosionCoroutine(Door door, Player player, MonoBehaviour monoBehaviour, C4Instance c4Instance)
         {
-            monoBehaviour.StartCoroutine(DelayedExplosion(door, player, tntInstance));
+            monoBehaviour.StartCoroutine(DelayedExplosion(door, player, c4Instance));
         }
 
-        private static IEnumerator DelayedExplosion(Door door, Player player, TNTInstance tntInstance)
+        private static IEnumerator DelayedExplosion(Door door, Player player, C4Instance c4Instance)
         {
             // Wait for 10 seconds.
             yield return new WaitForSeconds(DoorBreachPlugin.explosiveTimerInSec.Value);
 
             // Apply explosion effect
-            effectsInstance.EmitGrenade("big_explosion", tntInstance.LootItem.transform.position, Vector3.forward, 15f);
+            effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, 15f);
             ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
 
             //delete TNT from gameWorld
-            if (tntInstance.LootItem != null)
+            if (c4Instance.LootItem != null)
             {
                 //tntInstance.LootItem.Kill();
-                UnityEngine.Object.Destroy(tntInstance.LootItem.gameObject);
+                UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
             }
 
-            tntInstances.Remove(tntInstance);
+            c4Instances.Remove(c4Instance);
         }
 
 
