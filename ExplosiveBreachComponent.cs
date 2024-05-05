@@ -206,6 +206,9 @@ namespace BackdoorBandit
 
                 //delete C4 from gameWorld
                 UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
+
+                //delete door from gameWorld
+                UnityEngine.Object.Destroy(door.gameObject);
             }
 
             // Clean up references
