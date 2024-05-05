@@ -1,12 +1,16 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using BepInEx.Logging;
 using Comfort.Common;
 using DoorBreach;
 using EFT;
 using EFT.Interactive;
 using EFT.InventoryLogic;
+using EFT.UI.Ragfair;
+using HarmonyLib;
 using Systems.Effects;
 using UnityEngine;
 
@@ -48,7 +52,9 @@ namespace BackdoorBandit
             effectsInstance = Singleton<Effects>.Instance;
             cameraInstance = CameraClass.Instance;
             betterAudioInstance = Singleton<BetterAudio>.Instance;
+
         }
+
         internal static bool hasC4Explosives(Player player)
         {
             // Search playerItems for first c4 explosive
@@ -67,6 +73,12 @@ namespace BackdoorBandit
 
         internal static void StartExplosiveBreach(Door door, Player player)
         {
+            if (door == null || player == null)
+            {
+                Logger.LogError("Either the door or Player is null. Can't start breach.");
+                return;
+            }
+
             TryPlaceC4OnDoor(door, player);
 
             RemoveItemFromPlayerInventory(player);
@@ -94,32 +106,42 @@ namespace BackdoorBandit
             var itemFactory = Singleton<ItemFactory>.Instance;
             var c4Item = itemFactory.CreateItem(MongoID.Generate(), C4ExplosiveId, null);
 
-            // Attempt to find the DoorHandle component within the children of the Door GameObject
-            DoorHandle doorHandle = door.GetComponentInChildren<DoorHandle>();
-            if (doorHandle == null)
+            // Find the "Lock" GameObject instead of using the DoorHandle
+            Transform lockTransform = door.transform.Find("Lock");
+            if (lockTransform == null)
             {
-                Logger.LogError("DoorHandle component not found.");
+                Logger.LogError("Lock component not found.");
                 return;
             }
 
-            Vector3 handlePosition = doorHandle.transform.position;
+            Vector3 lockPosition = lockTransform.position;
+            Vector3 playerPosition = player.Transform.position;
 
-            // Determine if the player is in front of or behind the door
-            Vector3 doorToPlayer = player.Transform.position - door.transform.position;
-            bool playerInFront = Vector3.Dot(doorToPlayer, door.transform.forward) > 0;
+            // Calculate the vector from the door (lock position) towards the player
+            Vector3 doorToPlayer = playerPosition - lockPosition;
+            doorToPlayer.y = 0; // Remove the vertical component to ensure the C4 faces horizontally
 
-            // Adjust position to place the C4 above the door handle (lock)
-            Vector3 positionOffset = Vector3.up * 0.2f; // Offset upwards from the handle
-            Vector3 forwardOffset = door.transform.forward * (playerInFront ? -0.05f : 0.05f); // Conditional offset based on player's position
-            Vector3 c4Position = handlePosition + positionOffset + forwardOffset;
+            // Normalize the vector to ensure it's a proper direction vector
+            Vector3 doorForward = doorToPlayer.normalized;
 
-            // Correct rotation: Face flat against the door
-            Quaternion rotation = Quaternion.LookRotation(playerInFront ? -door.transform.forward : door.transform.forward, Vector3.up); // C4 should face outward correctly depending on player's position
+            // Determine placement position just off the surface of the door, near the lock
+            float doorThickness = 0.07f; // Adjust this value as needed
+            Vector3 c4Position = lockPosition + doorForward * doorThickness; // Placing it slightly forward
+
+            // Rotate the forward vector to face towards the player correctly
+            Quaternion rotation = Quaternion.LookRotation(doorForward, Vector3.up);
+
+            // Apply a 90-degree rotation around the y-axis if the C4's front is not oriented correctly
+            Quaternion correctionRotation = Quaternion.Euler(90, 0, 0);
+
+            rotation *= correctionRotation;
+
 
             // Place the C4 item in the game world
             LootItem lootItem = gameWorld.SetupItem(c4Item, player.InteractablePlayer, c4Position, rotation);
 
             c4Instances.Add(new C4Instance(lootItem, c4Position));
+
         }
 
 
@@ -143,27 +165,70 @@ namespace BackdoorBandit
 
         private static void StartDelayedExplosionCoroutine(Door door, Player player, MonoBehaviour monoBehaviour, C4Instance c4Instance)
         {
-            monoBehaviour.StartCoroutine(DelayedExplosion(door, player, c4Instance));
-        }
+            if (c4Instance?.LootItem == null)
+            {
+                Logger.LogError("C4 instance or LootItem is null.");
+                return;
+            }
 
+            c4Instance.ExplosionCoroutine = monoBehaviour.StartCoroutine(DelayedExplosion(door, player, c4Instance));
+        }
+        private static void StopExplosionCoroutine(C4Instance c4Instance)
+        {
+            if (componentInstance != null && c4Instance?.ExplosionCoroutine != null)
+            {
+                componentInstance.StopCoroutine(c4Instance.ExplosionCoroutine);
+                c4Instance.ExplosionCoroutine = null;
+                //Logger.LogInfo("Coroutine stopped successfully.");
+            }
+            else
+            {
+                Logger.LogError("Failed to stop coroutine: component or coroutine reference is null.");
+            }
+        }
         private static IEnumerator DelayedExplosion(Door door, Player player, C4Instance c4Instance)
         {
-            // Wait for 10 seconds.
-            yield return new WaitForSeconds(DoorBreachPlugin.explosiveTimerInSec.Value);
+            float waitTime = DoorBreachPlugin.explosiveTimerInSec.Value;
+            float timer = 0;
 
-            // Apply explosion effect
-            effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, 15f);
-            ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
-
-            //delete TNT from gameWorld
-            if (c4Instance.LootItem != null)
+            //Logger.LogWarning("Coroutine started.");
+            while (timer < waitTime)
             {
-                //tntInstance.LootItem.Kill();
+                //Logger.LogInfo("Checking C4 status...");
+                yield return new WaitForSeconds(1);
+                timer += 1;
+
+                // Check if the C4 object or any of its critical components have been destroyed or are null
+                if (c4Instance == null || c4Instance.LootItem == null || c4Instance.LootItem.Item == null || !ExistsInGame(c4Instance.LootItem.Item.Id))
+                {
+                    //Logger.LogError("C4 instance or related item is null or no longer exists in the game world.");
+                    StopExplosionCoroutine(c4Instance);
+                    yield break;
+                }
+            }
+
+            if (c4Instance.LootItem != null && c4Instance.LootItem.gameObject != null)
+            {
+                // Apply explosion effect
+                effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, 15f);
+                ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
+
+                //delete C4 from gameWorld
                 UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
             }
 
-            c4Instances.Remove(c4Instance);
+            // Clean up references
+            if (c4Instances.Contains(c4Instance))
+            {
+                c4Instances.Remove(c4Instance);
+            }
         }
+
+        private static bool ExistsInGame(string id)
+        {
+            return gameWorld.FindItemById(id).Value != null;
+        }
+    
 
 
         /*private static DamageInfo tntDamage()

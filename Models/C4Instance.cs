@@ -3,15 +3,22 @@ using UnityEngine;
 
 namespace BackdoorBandit
 {
-    internal class C4Instance
+    public class C4Instance
     {
         public LootItem LootItem
         {
-            get; set;
+            get;
+            set;
         }
         public Vector3 Position
         {
-            get; set;
+            get;
+            set;
+        }
+        public Coroutine ExplosionCoroutine
+        {
+            get;
+            set;
         }
 
         public C4Instance(LootItem lootItem, Vector3 position)
@@ -20,4 +27,6 @@ namespace BackdoorBandit
             Position = position;
         }
     }
+
+
 }
