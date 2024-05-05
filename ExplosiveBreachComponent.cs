@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using BepInEx.Logging;
 using Comfort.Common;
@@ -7,6 +9,7 @@ using DoorBreach;
 using EFT;
 using EFT.Interactive;
 using EFT.InventoryLogic;
+using HarmonyLib;
 using Systems.Effects;
 using UnityEngine;
 
@@ -22,8 +25,7 @@ namespace BackdoorBandit
         private static readonly string C4ExplosiveId = "6636606320e842b50084e51a";
         private static Vector2 _impactsGagRadius;
         private static Effects effectsInstance;
-        private static CameraClass cameraInstance;
-        private static BetterAudio betterAudioInstance;
+
         internal static ManualLogSource Logger
         {
             get; private set;
@@ -46,8 +48,6 @@ namespace BackdoorBandit
             player = gameWorld.MainPlayer;
             _impactsGagRadius = new Vector2(1f, 3f);
             effectsInstance = Singleton<Effects>.Instance;
-            cameraInstance = CameraClass.Instance;
-            betterAudioInstance = Singleton<BetterAudio>.Instance;
 
         }
 
@@ -200,9 +200,48 @@ namespace BackdoorBandit
 
             if (c4Instance.LootItem != null && c4Instance.LootItem.gameObject != null)
             {
+
                 // Apply explosion effect
-                effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, 15f);
-                ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
+                effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, DoorBreachPlugin.explosionRadius.Value);
+
+                if (DoorBreachPlugin.explosionDoesDamage.Value)
+                {
+                    //apply damage to nearby players based on emission radius
+                    float explosionRadius = DoorBreachPlugin.explosionRadius.Value;  
+                    float baseDamage = 200f; 
+                    Vector3 explosionPosition = c4Instance.LootItem.transform.position;
+
+                    Collider[] hitColliders = Physics.OverlapSphere(explosionPosition, explosionRadius);
+                    foreach (Collider hitCollider in hitColliders)
+                    {
+                        Player tempplayer = hitCollider.GetComponent<Player>();
+                        if (tempplayer != null)
+                        {
+                            // Calculate distance and apply damage
+                            float distance = Vector3.Distance(hitCollider.transform.position, explosionPosition);
+                            float damageMultiplier = Mathf.Clamp01(1 - distance / explosionRadius);
+                            float damageAmount = baseDamage * damageMultiplier;
+
+                            DamageInfo damageInfo = new DamageInfo
+                            {
+                                DamageType = EDamageType.Explosion,
+                                Damage = damageAmount,
+                                Direction = (tempplayer.Transform.position - explosionPosition).normalized,
+                                HitPoint = tempplayer.Transform.position,
+                                HitNormal = -(tempplayer.Transform.position - explosionPosition).normalized,
+                                Player = null, 
+                                Weapon = null,
+                                ArmorDamage = damageAmount * 0.5f,
+                            };
+
+
+                            player.ApplyDamageInfo(damageInfo, EBodyPart.Chest, EBodyPartColliderType.Pelvis, 0f);
+                        }
+                    }
+
+                }
+
+                door.KickOpen(true);
 
                 //delete C4 from gameWorld
                 UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
@@ -225,11 +264,11 @@ namespace BackdoorBandit
 
 
 
-        /*private static DamageInfo tntDamage()
+        private static DamageInfo c4Damage()
         {
             return new DamageInfo
             {
-                DamageType = EDamageType.Landmine,
+                DamageType = EDamageType.GrenadeFragment,
                 ArmorDamage = 300f,
                 StaminaBurnRate = 100f,
                 PenetrationPower = 100f,
@@ -237,7 +276,7 @@ namespace BackdoorBandit
                 Player = null,
                 IsForwardHit = true
             };
-        }*/
+        }
 
         public static void Enable()
         {

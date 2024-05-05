@@ -11,7 +11,7 @@ using VersionChecker;
 
 namespace DoorBreach
 {
-    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.4")]
+    [BepInPlugin("com.dvize.BackdoorBandit", "dvize.BackdoorBandit", "1.8.5")]
     //[BepInDependency("com.spt-aki.core", "3.7.6")]
     public class DoorBreachPlugin : BaseUnityPlugin
     {
@@ -23,6 +23,9 @@ namespace DoorBreach
         public static ConfigEntry<int> MinHitPoints;
         public static ConfigEntry<int> MaxHitPoints;
         public static ConfigEntry<int> explosiveTimerInSec;
+        public static ConfigEntry<bool> explosionDoesDamage;
+        public static ConfigEntry<int> explosionRadius;
+        public static ConfigEntry<int> explosionDamage;
 
         public static int interactiveLayer;
 
@@ -87,12 +90,36 @@ namespace DoorBreach
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             explosiveTimerInSec = Config.Bind(
-                "3. Explosive Timer",
+                "3. Explosive",
                 "Explosive Timer In Sec",
                 10,
                 new ConfigDescription("Time in seconds for explosive breach to detonate",
                 new AcceptableValueRange<int>(1, 60),
-                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 4 }));
+
+            explosionDoesDamage = Config.Bind(
+                "3. Explosive",
+                "Enable Explosive Damage",
+                false,
+                new ConfigDescription("Enable damage from the explosive",
+                null,
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 3 }));
+
+            explosionRadius = Config.Bind(
+                "3. Explosive",
+                "Explosion Radius",
+                10,
+                new ConfigDescription("Sets the radius for the explosion",
+                new AcceptableValueRange<int>(0, 200),
+                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 2 }));
+
+            explosionDamage = Config.Bind(
+               "3. Explosive",
+               "Explosion Damage",
+               200,
+               new ConfigDescription("Amount of HP Damage the Explosion Causes",
+               new AcceptableValueRange<int>(0, 500),
+               new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
 
             new NewGamePatch().Enable();
             new BackdoorBandit.ApplyHit().Enable();
