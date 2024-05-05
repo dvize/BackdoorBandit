@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using BepInEx.Logging;
 using Comfort.Common;
 using DoorBreach;
 using EFT;
 using EFT.Interactive;
 using EFT.InventoryLogic;
-using EFT.UI.Ragfair;
-using HarmonyLib;
 using Systems.Effects;
 using UnityEngine;
 
@@ -119,23 +115,18 @@ namespace BackdoorBandit
 
             // Calculate the vector from the door (lock position) towards the player
             Vector3 doorToPlayer = playerPosition - lockPosition;
-            doorToPlayer.y = 0; // Remove the vertical component to ensure the C4 faces horizontally
+            doorToPlayer.y = 0;
 
-            // Normalize the vector to ensure it's a proper direction vector
             Vector3 doorForward = doorToPlayer.normalized;
 
-            // Determine placement position just off the surface of the door, near the lock
-            float doorThickness = 0.07f; // Adjust this value as needed
+            float doorThickness = 0.07f;
             Vector3 c4Position = lockPosition + doorForward * doorThickness; // Placing it slightly forward
 
-            // Rotate the forward vector to face towards the player correctly
             Quaternion rotation = Quaternion.LookRotation(doorForward, Vector3.up);
 
-            // Apply a 90-degree rotation around the y-axis if the C4's front is not oriented correctly
             Quaternion correctionRotation = Quaternion.Euler(90, 0, 0);
 
             rotation *= correctionRotation;
-
 
             // Place the C4 item in the game world
             LootItem lootItem = gameWorld.SetupItem(c4Item, player.InteractablePlayer, c4Position, rotation);
@@ -228,7 +219,7 @@ namespace BackdoorBandit
         {
             return gameWorld.FindItemById(id).Value != null;
         }
-    
+
 
 
         /*private static DamageInfo tntDamage()
