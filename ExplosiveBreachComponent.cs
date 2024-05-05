@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using BepInEx.Logging;
 using Comfort.Common;
@@ -9,7 +7,6 @@ using DoorBreach;
 using EFT;
 using EFT.Interactive;
 using EFT.InventoryLogic;
-using HarmonyLib;
 using Systems.Effects;
 using UnityEngine;
 
@@ -200,69 +197,75 @@ namespace BackdoorBandit
 
             if (c4Instance.LootItem != null && c4Instance.LootItem.gameObject != null)
             {
-
-                // Apply explosion effect
                 effectsInstance.EmitGrenade("big_explosion", c4Instance.LootItem.transform.position, Vector3.forward, DoorBreachPlugin.explosionRadius.Value);
 
                 if (DoorBreachPlugin.explosionDoesDamage.Value)
                 {
-                    //apply damage to nearby players based on emission radius
-                    float explosionRadius = DoorBreachPlugin.explosionRadius.Value;  
-                    float baseDamage = 200f; 
+                    float explosionRadius = DoorBreachPlugin.explosionRadius.Value;
+                    float baseDamage = DoorBreachPlugin.explosionDamage.Value;
                     Vector3 explosionPosition = c4Instance.LootItem.transform.position;
 
                     Collider[] hitColliders = Physics.OverlapSphere(explosionPosition, explosionRadius);
                     foreach (Collider hitCollider in hitColliders)
                     {
-                        Player tempplayer = hitCollider.GetComponent<Player>();
+                        Player tempplayer = hitCollider.GetComponentInParent<Player>();
                         if (tempplayer != null)
                         {
-                            // Calculate distance and apply damage
                             float distance = Vector3.Distance(hitCollider.transform.position, explosionPosition);
-                            float damageMultiplier = Mathf.Clamp01(1 - distance / explosionRadius);
-                            float damageAmount = baseDamage * damageMultiplier;
-
-                            DamageInfo damageInfo = new DamageInfo
+                            if (CheckLineOfSight(explosionPosition, hitCollider.transform.position))
                             {
-                                DamageType = EDamageType.Explosion,
-                                Damage = damageAmount,
-                                Direction = (tempplayer.Transform.position - explosionPosition).normalized,
-                                HitPoint = tempplayer.Transform.position,
-                                HitNormal = -(tempplayer.Transform.position - explosionPosition).normalized,
-                                Player = null, 
-                                Weapon = null,
-                                ArmorDamage = damageAmount * 0.5f,
-                            };
+                                float damageMultiplier = Mathf.Clamp01(1 - distance / explosionRadius);
+                                float damageAmount = baseDamage * damageMultiplier;
 
+                                DamageInfo damageInfo = new DamageInfo
+                                {
+                                    DamageType = EDamageType.Explosion,
+                                    Damage = damageAmount,
+                                    Direction = (tempplayer.Transform.position - explosionPosition).normalized,
+                                    HitPoint = tempplayer.Transform.position,
+                                    HitNormal = -(tempplayer.Transform.position - explosionPosition).normalized,
+                                    Player = null,
+                                    Weapon = null,
+                                    ArmorDamage = damageAmount * 0.5f,
+                                };
 
-                            player.ApplyDamageInfo(damageInfo, EBodyPart.Chest, EBodyPartColliderType.Pelvis, 0f);
+                                tempplayer.ApplyDamageInfo(damageInfo, EBodyPart.Chest, EBodyPartColliderType.Pelvis, 0f);
+                            }
                         }
                     }
-
                 }
 
-                door.KickOpen(true);
+                ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
 
                 //delete C4 from gameWorld
                 UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
 
                 //delete door from gameWorld
                 UnityEngine.Object.Destroy(door.gameObject);
-            }
 
-            // Clean up references
-            if (c4Instances.Contains(c4Instance))
-            {
-                c4Instances.Remove(c4Instance);
+
+                // Clean up references
+                if (c4Instances.Contains(c4Instance))
+                {
+                    c4Instances.Remove(c4Instance);
+                }
             }
         }
-
         private static bool ExistsInGame(string id)
         {
             return gameWorld.FindItemById(id).Value != null;
         }
 
-
+        private static bool CheckLineOfSight(Vector3 explosionPosition, Vector3 playerPosition)
+        {
+            RaycastHit hit;
+            Vector3 direction = playerPosition - explosionPosition;
+            if (Physics.Raycast(explosionPosition, direction.normalized, out hit, direction.magnitude))
+            {
+                return hit.collider.GetComponent<Player>() != null;
+            }
+            return false;
+        }
 
         private static DamageInfo c4Damage()
         {

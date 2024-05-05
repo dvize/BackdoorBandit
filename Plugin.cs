@@ -108,7 +108,7 @@ namespace DoorBreach
             explosionRadius = Config.Bind(
                 "3. Explosive",
                 "Explosion Radius",
-                10,
+                5,
                 new ConfigDescription("Sets the radius for the explosion",
                 new AcceptableValueRange<int>(0, 200),
                 new ConfigurationManagerAttributes { IsAdvanced = false, Order = 2 }));
@@ -116,7 +116,7 @@ namespace DoorBreach
             explosionDamage = Config.Bind(
                "3. Explosive",
                "Explosion Damage",
-               200,
+               80,
                new ConfigDescription("Amount of HP Damage the Explosion Causes",
                new AcceptableValueRange<int>(0, 500),
                new ConfigurationManagerAttributes { IsAdvanced = false, Order = 1 }));
