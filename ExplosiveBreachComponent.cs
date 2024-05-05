@@ -267,20 +267,6 @@ namespace BackdoorBandit
             return false;
         }
 
-        private static DamageInfo c4Damage()
-        {
-            return new DamageInfo
-            {
-                DamageType = EDamageType.GrenadeFragment,
-                ArmorDamage = 300f,
-                StaminaBurnRate = 100f,
-                PenetrationPower = 100f,
-                Direction = Vector3.zero,
-                Player = null,
-                IsForwardHit = true
-            };
-        }
-
         public static void Enable()
         {
             if (Singleton<IBotGame>.Instantiated)
