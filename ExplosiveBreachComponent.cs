@@ -45,7 +45,6 @@ namespace BackdoorBandit
             player = gameWorld.MainPlayer;
             _impactsGagRadius = new Vector2(1f, 3f);
             effectsInstance = Singleton<Effects>.Instance;
-
         }
 
         internal static bool hasC4Explosives(Player player)
@@ -101,23 +100,35 @@ namespace BackdoorBandit
 
             // Find the "Lock" GameObject instead of using the DoorHandle
             Transform lockTransform = door.transform.Find("Lock");
+            Transform doorHandleTransform = door.Handle.transform;
+
             if (lockTransform == null)
             {
-                Logger.LogError("Lock component not found.");
-                return;
+#if DEBUG
+                Logger.LogInfo("Lock component not found. Trying Door Handle");
+#endif
+                //try to use doorHandle instead for keycard doors
+                if (doorHandleTransform == null)
+                {
+                    Logger.LogError("Lock or DoorHandle component not found.");
+                    return;
+                }
+
             }
 
-            Vector3 lockPosition = lockTransform.position;
+            Transform targetTransform = (lockTransform != null) ? lockTransform : doorHandleTransform;
+
+            Vector3 targetPosition = targetTransform.position;
             Vector3 playerPosition = player.Transform.position;
 
-            // Calculate the vector from the door (lock position) towards the player
-            Vector3 doorToPlayer = playerPosition - lockPosition;
+            // Calculate the vector from the door (lock or handle position) towards the player
+            Vector3 doorToPlayer = playerPosition - targetPosition;
             doorToPlayer.y = 0;
 
             Vector3 doorForward = doorToPlayer.normalized;
 
             float doorThickness = 0.07f;
-            Vector3 c4Position = lockPosition + doorForward * doorThickness; // Placing it slightly forward
+            Vector3 c4Position = targetPosition + doorForward * doorThickness; // Placing it slightly forward
 
             Quaternion rotation = Quaternion.LookRotation(doorForward, Vector3.up);
 
@@ -235,14 +246,20 @@ namespace BackdoorBandit
                     }
                 }
 
-                ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
+                // Check if c4Instance and its LootItem exist
+                if (c4Instance != null && c4Instance.LootItem != null)
+                {
+                    // Safe to destroy the C4 since it's confirmed to exist
+                    UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
+                }
 
-                //delete C4 from gameWorld
-                UnityEngine.Object.Destroy(c4Instance.LootItem.gameObject);
+                // Check if door exists and is not already destroyed
+                if (door != null && door.gameObject != null)
+                {
+                    ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
 
-                //delete door from gameWorld
-                UnityEngine.Object.Destroy(door.gameObject);
-
+                    UnityEngine.Object.Destroy(door.gameObject);
+                }
 
                 // Clean up references
                 if (c4Instances.Contains(c4Instance))
