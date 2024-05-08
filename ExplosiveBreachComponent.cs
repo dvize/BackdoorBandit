@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
@@ -92,31 +93,53 @@ namespace BackdoorBandit
                 StartDelayedExplosionCoroutine(door, player, componentInstance, latestC4Instance);
             }
         }
-
         private static void TryPlaceC4OnDoor(Door door, Player player)
         {
             var itemFactory = Singleton<ItemFactory>.Instance;
             var c4Item = itemFactory.CreateItem(MongoID.Generate(), C4ExplosiveId, null);
 
-            // Find the "Lock" GameObject instead of using the DoorHandle
             Transform lockTransform = door.transform.Find("Lock");
-            Transform doorHandleTransform = door.Handle.transform;
-
-            if (lockTransform == null)
+            Transform doorHandleTransform = null;
+            try
             {
-#if DEBUG
-                Logger.LogInfo("Lock component not found. Trying Door Handle");
-#endif
-                //try to use doorHandle instead for keycard doors
-                if (doorHandleTransform == null)
-                {
-                    Logger.LogError("Lock or DoorHandle component not found.");
-                    return;
-                }
-
+                // Attempt to safely access door.Handle
+                doorHandleTransform = door.Handle?.transform;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Failed to access door handle: {ex.Message}");
             }
 
-            Transform targetTransform = (lockTransform != null) ? lockTransform : doorHandleTransform;
+            Component lockComponent = door.gameObject.GetComponent("Lock");
+
+            // Determine the target transform based on availability of components
+            Transform targetTransform = null;
+            if (lockTransform != null)
+            {
+                targetTransform = lockTransform;
+            }
+            else if (doorHandleTransform != null)
+            {
+                targetTransform = doorHandleTransform;
+            }
+            else if (lockComponent != null && lockComponent.transform != null)
+            {
+                targetTransform = lockComponent.transform;
+            }
+            else
+            {
+                // If no lock component or door handle, default to the door's center position
+#if DEBUG
+        Logger.LogInfo("Lock component and Door Handle not found. Defaulting to door center");
+#endif
+                targetTransform = door.transform;
+            }
+
+            if (targetTransform == null)
+            {
+                Logger.LogError("Unable to find a suitable position on the door for C4 placement.");
+                return;
+            }
 
             Vector3 targetPosition = targetTransform.position;
             Vector3 playerPosition = player.Transform.position;
@@ -126,21 +149,16 @@ namespace BackdoorBandit
             doorToPlayer.y = 0;
 
             Vector3 doorForward = doorToPlayer.normalized;
-
-            float doorThickness = 0.07f;
+            float doorThickness = 0.07f; // Modify thickness if needed
             Vector3 c4Position = targetPosition + doorForward * doorThickness; // Placing it slightly forward
 
             Quaternion rotation = Quaternion.LookRotation(doorForward, Vector3.up);
-
             Quaternion correctionRotation = Quaternion.Euler(90, 0, 0);
-
             rotation *= correctionRotation;
 
             // Place the C4 item in the game world
             LootItem lootItem = gameWorld.SetupItem(c4Item, player.InteractablePlayer, c4Position, rotation);
-
             c4Instances.Add(new C4Instance(lootItem, c4Position));
-
         }
 
 
