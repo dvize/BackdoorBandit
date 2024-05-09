@@ -125,6 +125,7 @@
     <Compile Include="Patches\ActionMenuKeyCardPatch.cs" />
     <Compile Include="Patches\ActionMenuDoorPatch.cs" />
     <Compile Include="Patches\ApplyHitPatch.cs" />
+    <Compile Include="Patches\PerfectCullingNullRefPatch.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VersionChecker\TarkovVersion.cs" />
