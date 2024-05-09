@@ -155,7 +155,11 @@ namespace BackdoorBandit
                 if (door.DoorState != EDoorState.Open)
                 {
                     door.DoorState = EDoorState.Shut;
+                    door.interactWithoutAnimation = true;
+
+                    // Run the ExecuteDoorInteraction
                     player.CurrentManagedState.ExecuteDoorInteraction(door, new InteractionResult(interactionType), null, player);
+                    door.interactWithoutAnimation = false;
                 }
             }
 
@@ -164,7 +168,9 @@ namespace BackdoorBandit
                 if (container.DoorState != EDoorState.Open)
                 {
                     container.DoorState = EDoorState.Shut;
+                    container.interactWithoutAnimation = true;
                     player.CurrentManagedState.ExecuteDoorInteraction(container, new InteractionResult(interactionType), null, player);
+                    container.interactWithoutAnimation = false;
                 }
             }
             if (entity is Trunk trunk)
@@ -172,9 +178,10 @@ namespace BackdoorBandit
 
                 if (trunk.DoorState != EDoorState.Open)
                 {
-
+                    trunk.interactWithoutAnimation = true;
                     trunk.DoorState = EDoorState.Shut;
                     player.CurrentManagedState.ExecuteDoorInteraction(trunk, new InteractionResult(interactionType), null, player);
+                    trunk.interactWithoutAnimation = false;
                 }
             }
         }

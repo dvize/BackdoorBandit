@@ -107,7 +107,7 @@ namespace BackdoorBandit
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Failed to access door handle: {ex.Message}");
+                //Logger.LogError($"Failed to access door handle: {ex.Message}");
             }
 
             Component lockComponent = door.gameObject.GetComponent("Lock");
