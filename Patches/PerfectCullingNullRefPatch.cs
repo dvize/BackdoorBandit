@@ -1,38 +1,92 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using Aki.Reflection.Patching;
+using Koenigz.PerfectCulling;
+using Koenigz.PerfectCulling.EFT;
 using UnityEngine;
 
 namespace BackdoorBandit.Patches
 {
     internal class PerfectCullingNullRefPatch : ModulePatch
     {
-        protected override MethodBase GetTargetMethod() => typeof(Koenigz.PerfectCulling.EFT.PerfectCullingCrossSceneGroup).GetMethod(nameof(Koenigz.PerfectCulling.EFT.PerfectCullingCrossSceneGroup.method_1));
+        protected override MethodBase GetTargetMethod() => typeof(PerfectCullingBakeGroup).GetMethod(nameof(PerfectCullingBakeGroup.Toggle));
 
         [PatchPrefix]
 
-        public static bool Prefix(Koenigz.PerfectCulling.EFT.PerfectCullingCrossSceneGroup __instance)
+        static bool Prefix(PerfectCullingBakeGroup __instance, bool rendererEnabled, int ___int_0, PerfectCullingBakeGroup.RuntimeGroupContent[] ___runtimeGroupContent_0)
         {
-            // Implement checks for null references here
-            if (__instance == null || __instance.bakeGroups == null)
+            // Safely handle Renderer[] array
+            if (__instance.runtimeProxies != null)
             {
-                return false; 
-            }
-
-            // Check each bake group for null or any other conditions that might lead to an exception
-            foreach (var group in __instance.bakeGroups)
-            {
-                if (group == null || group.renderers == null)
+                foreach (var renderer in __instance.runtimeProxies)
                 {
-                    return false;
+                    if (renderer != null)
+                    {
+                        renderer.enabled = !rendererEnabled;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Skipped null Renderer in runtimeProxies.");
+                    }
                 }
             }
 
-            return true;
+            // Safely handle CullingObject array
+            if (__instance.cullingLightObjects != null)
+            {
+                foreach (var cullingObject in __instance.cullingLightObjects)
+                {
+                    if (cullingObject != null)
+                    {
+                        cullingObject.SetAutocullVisibility(rendererEnabled);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Skipped null CullingObject in cullingLightObjects.");
+                    }
+                }
+            }
+
+            // Safely handle AnalyticSource array
+            if (__instance.analyticSources != null)
+            {
+                foreach (var analyticSource in __instance.analyticSources)
+                {
+                    if (analyticSource != null)
+                    {
+                        analyticSource.IsAutocullVisible = rendererEnabled;
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Skipped null AnalyticSource in analyticSources.");
+                    }
+                }
+            }
+
+            // Safely handle ScreenDistanceSwitcher
+            if (__instance.screenDistanceSwitcher != null)
+            {
+                __instance.screenDistanceSwitcher.IsBakedAutocullVisible = rendererEnabled;
+            }
+            else
+            {
+                Debug.LogWarning("screenDistanceSwitcher is null.");
+            }
+
+            // Safely handle RuntimeGroupContent
+            for (int j = 0; j < ___int_0; j++)
+            {
+                if (___runtimeGroupContent_0[j].Renderer != null)
+                {
+                    ___runtimeGroupContent_0[j].Renderer.enabled = rendererEnabled;
+                }
+                else
+                {
+                    Debug.LogWarning($"Skipped null element at index {j} in runtimeGroupContent_0.");
+                }
+            }
+
+            return false; // Skip original method execution
         }
     }
 }

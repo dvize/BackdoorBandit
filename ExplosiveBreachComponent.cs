@@ -350,6 +350,7 @@ namespace BackdoorBandit
                 {
                     ApplyHit.OpenDoorIfNotAlreadyOpen(door, player, EInteractionType.Breach);
 
+                    //SafeDeleteAndCleanup(door.gameObject);
                     UnityEngine.Object.Destroy(door.gameObject);
                 }
 
