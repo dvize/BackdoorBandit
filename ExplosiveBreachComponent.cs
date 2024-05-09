@@ -254,6 +254,13 @@ namespace BackdoorBandit
 
             while (timer < waitTime)
             {
+                // Check for C4 actual in world still
+                if (c4Instance == null || c4Instance.LootItem == null || c4Instance.LootItem.Item == null || !ExistsInGame(c4Instance.LootItem.Item.Id))
+                {
+                    StopExplosionCoroutine(c4Instance);
+                    yield break;
+                }
+
                 // Only switch the clip if it's not already set correctly
                 AudioClip intendedClip = (waitTime - timer <= finalToneStart) ? finalToneClip : beepClip;
                 if (audioSource.clip != intendedClip || !audioSource.isPlaying)
