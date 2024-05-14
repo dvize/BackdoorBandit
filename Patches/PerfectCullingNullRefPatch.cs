@@ -24,10 +24,6 @@ namespace BackdoorBandit.Patches
                     {
                         renderer.enabled = !rendererEnabled;
                     }
-                    else
-                    {
-                        Debug.LogWarning("Skipped null Renderer in runtimeProxies.");
-                    }
                 }
             }
 
@@ -39,10 +35,6 @@ namespace BackdoorBandit.Patches
                     if (cullingObject != null)
                     {
                         cullingObject.SetAutocullVisibility(rendererEnabled);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Skipped null CullingObject in cullingLightObjects.");
                     }
                 }
             }
@@ -56,10 +48,6 @@ namespace BackdoorBandit.Patches
                     {
                         analyticSource.IsAutocullVisible = rendererEnabled;
                     }
-                    else
-                    {
-                        Debug.LogWarning("Skipped null AnalyticSource in analyticSources.");
-                    }
                 }
             }
 
@@ -68,10 +56,6 @@ namespace BackdoorBandit.Patches
             {
                 __instance.screenDistanceSwitcher.IsBakedAutocullVisible = rendererEnabled;
             }
-            else
-            {
-                Debug.LogWarning("screenDistanceSwitcher is null.");
-            }
 
             // Safely handle RuntimeGroupContent
             for (int j = 0; j < ___int_0; j++)
@@ -79,10 +63,6 @@ namespace BackdoorBandit.Patches
                 if (___runtimeGroupContent_0[j].Renderer != null)
                 {
                     ___runtimeGroupContent_0[j].Renderer.enabled = rendererEnabled;
-                }
-                else
-                {
-                    Debug.LogWarning($"Skipped null element at index {j} in runtimeGroupContent_0.");
                 }
             }
 
