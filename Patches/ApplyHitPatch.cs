@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Aki.Reflection.Patching;
+using SPT.Reflection.Patching;
 using DoorBreach;
 using EFT;
 using EFT.Ballistics;
@@ -30,7 +30,7 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct390 shotID)
+        public static void PatchPostFix(DamageInfo damageInfo, GStruct389 shotID)
         {
             //try catch for random things applying damage that we don't want
             try

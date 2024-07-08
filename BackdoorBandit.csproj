@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BackdoorBandit</RootNamespace>
     <AssemblyName>dvize.BackdoorBandit</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -45,16 +45,6 @@
     <Reference Include="0Harmony">
       <HintPath>F:\SPT-AKI-DEV\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Aki.Common">
-      <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Aki.Reflection, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Aki.Reflection.dll</HintPath>
-    </Reference>
-    <Reference Include="aki_PrePatch">
-      <HintPath>F:\SPT-AKI-DEV\BepInEx\patchers\aki_PrePatch.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -77,6 +67,15 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-common">
+      <HintPath>F:\SPT-AKI-DEV\BepInEx\plugins\spt\spt-common.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-prepatch">
+      <HintPath>F:\SPT-AKI-DEV\BepInEx\patchers\spt-prepatch.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-reflection">
+      <HintPath>F:\SPT-AKI-DEV\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
@@ -142,16 +141,13 @@
     <PostBuildEvent>copy "$(TargetPath)" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).dll"
 
 if "$(ConfigurationName)" == "Debug" (
-    echo Debug build
     copy "$(TargetDir)$(TargetName).pdb" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).pdb"
-) else if "$(ConfigurationName)" == "Release" (
-    echo Release build
+) else (
     del "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).pdb"
-    if exist "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).pdb" (
-        echo Failed to delete PDB file.
-    ) else (
-        echo PDB file deleted successfully.
-    )
+)
+
+if "$(ConfigurationName)" == "Release" (
+    powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File "$(ProjectDir)PackageMods.ps1" -ConfigurationName "$(ConfigurationName)" -TargetPath "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit\$(TargetName).dll" -TargetName "$(TargetName)" -TargetDir "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BackdoorBandit"
 )</PostBuildEvent>
   </PropertyGroup>
 </Project>
