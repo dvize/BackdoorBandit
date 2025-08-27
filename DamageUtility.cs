@@ -12,11 +12,10 @@ namespace BackdoorBandit
 {
     internal static class DamageUtility
     {
-        internal static void CheckWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage, ref HashSet<string> validWeapons, Func<AmmoTemplate, bool> isRoundValid, Func<DamageInfo, bool> isValidLockHit)
+        internal static void CheckWeaponAndAmmo(DamageInfoStruct damageInfo, ref bool validDamage, ref HashSet<string> validWeapons, Func<AmmoTemplate, bool> isRoundValid, Func<DamageInfoStruct, bool> isValidLockHit)
         {
-            var material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
-            var weapon = damageInfo.Weapon.TemplateId;
-
+            MaterialType material = damageInfo.HittedBallisticCollider.TypeOfMaterial;
+            MongoID weaponID = damageInfo.Weapon.TemplateId;
 
             //semi-pleb mode.  All regular doors are shootable any weapon except for reinforced doors
             if (DoorBreachPlugin.SemiPlebMode.Value && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
@@ -28,7 +27,7 @@ namespace BackdoorBandit
             //regular valid melee weapon check
             if (damageInfo.DamageType != EDamageType.Bullet && damageInfo.DamageType != EDamageType.GrenadeFragment)
             {
-                if (damageInfo.DamageType == EDamageType.Melee && DoorBreachComponent.MeleeWeapons.Contains(weapon) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
+                if (damageInfo.DamageType == EDamageType.Melee && DoorBreachComponent.MeleeWeapons.Contains(weaponID) && material != MaterialType.MetalThin && material != MaterialType.MetalThick)
                 {
                     validDamage = true;
                 }
@@ -36,16 +35,16 @@ namespace BackdoorBandit
                 return;
             }
 
-            var bulletTemplate = Singleton<ItemFactory>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
+            AmmoTemplate bulletTemplate = Singleton<ItemFactoryClass>.Instance.ItemTemplates[damageInfo.SourceId] as AmmoTemplate;
 
 #if DEBUG
-            DoorBreachComponent.Logger.LogInfo($"ammoTemplate: {bulletTemplate.Name}");
-            DoorBreachComponent.Logger.LogInfo($"BB: Actual DamageType is : {damageInfo.DamageType}");
-            DoorBreachComponent.Logger.LogInfo($"isValidLockHit: {isValidLockHit(damageInfo)}");
-            DoorBreachComponent.Logger.LogInfo($"isRoundValid: {isRoundValid(bulletTemplate)}");
-            DoorBreachComponent.Logger.LogInfo($"weapon used: {damageInfo.Weapon.LocalizedName()}, id: {damageInfo.Weapon.TemplateId}");
-            DoorBreachComponent.Logger.LogInfo($"validWeapons Contains weapon tpl id: {validWeapons.Contains(weapon).ToString()}");
+            DoorBreachComponent.Logger.LogDebug($"ammoTemplate: {bulletTemplate.Name}");
+            DoorBreachComponent.Logger.LogDebug($"BB: Actual DamageType is : {damageInfo.DamageType}");
+            DoorBreachComponent.Logger.LogDebug($"isValidLockHit: {isValidLockHit(damageInfo)}");
+            DoorBreachComponent.Logger.LogDebug($"isRoundValid: {isRoundValid(bulletTemplate)}");
+            DoorBreachComponent.Logger.LogDebug($"weapon used: {damageInfo.Weapon.LocalizedName()}, id: {damageInfo.Weapon.TemplateId}");
 #endif
+
             //check if weapon is a shotgun and material type is metal
             if (!DoorBreachPlugin.BreachingRoundsOpenMetalDoors.Value)
             {
@@ -57,16 +56,16 @@ namespace BackdoorBandit
             }
 
             //check if its on the validWeapons hashset and its not a shotgun.. something user added then we need to skip the isRoundValidCheck
-            if (validWeapons.Contains(weapon) && !isShotgun(damageInfo) && isValidLockHit(damageInfo))
+            if (validWeapons.Contains(weaponID) && !isShotgun(damageInfo) && isValidLockHit(damageInfo))
             {
                 validDamage = true;
                 return;
             }
             //regular valid weapon and round check
-            else if (validWeapons.Contains(weapon) && isRoundValid(bulletTemplate) && isValidLockHit(damageInfo))
+            else if (validWeapons.Contains(weaponID) && isRoundValid(bulletTemplate) && isValidLockHit(damageInfo))
             {
 #if DEBUG
-                DoorBreachComponent.Logger.LogInfo($"BB: Valid round detected.");
+                DoorBreachComponent.Logger.LogDebug($"BB: Valid round detected.");
 #endif
                 validDamage = true;
 
@@ -80,19 +79,19 @@ namespace BackdoorBandit
             }
         }
 
-        internal static void CheckDoorWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
+        internal static void CheckDoorWeaponAndAmmo(DamageInfoStruct damageInfo, ref bool validDamage)
         {
             CheckWeaponAndAmmo(damageInfo, ref validDamage, ref DoorBreachComponent.ApplicableWeapons,
                ammo => isHEGrenade(ammo) || isShrapnel(ammo) || isBreachingSlug(ammo), isValidDoorLockHit);
         }
 
-        internal static void CheckCarWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
+        internal static void CheckCarWeaponAndAmmo(DamageInfoStruct damageInfo, ref bool validDamage)
         {
             CheckWeaponAndAmmo(damageInfo, ref validDamage, ref DoorBreachComponent.ApplicableWeapons,
                 ammo => isHEGrenade(ammo) || isShrapnel(ammo) || isBreachingSlug(ammo), isValidCarTrunkLockHit);
         }
 
-        internal static void CheckLootableContainerWeaponAndAmmo(DamageInfo damageInfo, ref bool validDamage)
+        internal static void CheckLootableContainerWeaponAndAmmo(DamageInfoStruct damageInfo, ref bool validDamage)
         {
             CheckWeaponAndAmmo(damageInfo, ref validDamage, ref DoorBreachComponent.ApplicableWeapons,
                 ammo => isHEGrenade(ammo) || isShrapnel(ammo) || isBreachingSlug(ammo), isValidContainerLockHit);
@@ -118,13 +117,13 @@ namespace BackdoorBandit
 
             return (bulletTemplate._id == "660249a0712c1005a4a3ab41");
         }
-        internal static bool isShotgun(DamageInfo damageInfo)
+        internal static bool isShotgun(DamageInfoStruct damageInfo)
         {
             //check if weapon is a shotgun
 
             return ((damageInfo.Weapon as Weapon)?.WeapClass == "shotgun");
         }
-        internal static bool isValidDoorLockHit(DamageInfo damageInfo)
+        internal static bool isValidDoorLockHit(DamageInfoStruct damageInfo)
         {
             //check if door handle area was hit
             Collider col = damageInfo.HitCollider;
@@ -146,7 +145,7 @@ namespace BackdoorBandit
 
         }
 
-        internal static bool isValidCarTrunkLockHit(DamageInfo damageInfo)
+        internal static bool isValidCarTrunkLockHit(DamageInfoStruct damageInfo)
         {
             //check if door handle area was hit
             Collider col = damageInfo.HitCollider;
@@ -154,11 +153,11 @@ namespace BackdoorBandit
             //if doorhandle exists and is hit
             if (col.GetComponentInParent<Trunk>().GetComponentInChildren<DoorHandle>() != null)
             {
-                var gameobj = col.GetComponentInParent<Trunk>().gameObject;
+                GameObject gameobj = col.GetComponentInParent<Trunk>().gameObject;
 
                 //find child game object Lock from gameobj
-                var carLockObj = gameobj.transform.Find("CarLock_Hand").gameObject;
-                var lockObj = carLockObj.transform.Find("Lock").gameObject;
+                GameObject carLockObj = gameobj.transform.Find("CarLock_Hand").gameObject;
+                GameObject lockObj = carLockObj.transform.Find("Lock").gameObject;
 
                 float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
 
@@ -172,7 +171,7 @@ namespace BackdoorBandit
 
         }
 
-        internal static bool isValidContainerLockHit(DamageInfo damageInfo)
+        internal static bool isValidContainerLockHit(DamageInfoStruct damageInfo)
         {
             //check if door handle area was hit
             Collider col = damageInfo.HitCollider;
@@ -180,10 +179,10 @@ namespace BackdoorBandit
             //if doorhandle exists and is hit
             if (col.GetComponentInParent<LootableContainer>().GetComponentInChildren<DoorHandle>() != null)
             {
-                var gameobj = col.GetComponentInParent<LootableContainer>().gameObject;
+                GameObject gameobj = col.GetComponentInParent<LootableContainer>().gameObject;
 
                 //find child game object Lock from gameobj
-                var lockObj = gameobj.transform.Find("Lock").gameObject;
+                GameObject lockObj = gameobj.transform.Find("Lock").gameObject;
 
                 float distanceToLock = Vector3.Distance(damageInfo.HitPoint, lockObj.transform.position);
                 return distanceToLock < 0.25f;

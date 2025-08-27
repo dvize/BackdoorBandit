@@ -1,0 +1,10 @@
+{
+    "version": 3,
+    "file": "items.type.js",
+    "sourceRoot": "",
+    "sources": [
+        "items.type.ts"
+    ],
+    "names": [],
+    "mappings": ""
+}

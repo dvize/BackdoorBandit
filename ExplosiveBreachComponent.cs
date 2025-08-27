@@ -80,7 +80,7 @@ namespace BackdoorBandit
         internal static bool hasC4Explosives(Player player)
         {
             // Search playerItems for first c4 explosive
-            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
+            Item foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
 
             if (foundItem != null)
             {
@@ -118,14 +118,14 @@ namespace BackdoorBandit
             // Start a coroutine for the most recently placed TNT.
             if (c4Instances.Any())
             {
-                var latestC4Instance = c4Instances.Last();
+                C4Instance latestC4Instance = c4Instances.Last();
                 StartDelayedExplosionCoroutine(door, player, componentInstance, latestC4Instance);
             }
         }
         private static void TryPlaceC4OnDoor(Door door, Player player)
         {
-            var itemFactory = Singleton<ItemFactory>.Instance;
-            var c4Item = itemFactory.CreateItem(MongoID.Generate(), C4ExplosiveId, null);
+            ItemFactoryClass itemFactory = Singleton<ItemFactoryClass>.Instance;
+            Item c4Item = itemFactory.CreateItem(MongoID.Generate(), C4ExplosiveId, null);
 
             Transform lockTransform = door.transform.Find("Lock");
             Transform doorHandleTransform = null;
@@ -193,11 +193,11 @@ namespace BackdoorBandit
 
         private static void RemoveItemFromPlayerInventory(Player player)
         {
-            var foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
+            Item foundItem = player.Inventory.GetPlayerItems(EPlayerItems.Equipment).FirstOrDefault(x => x.TemplateId == C4ExplosiveId);
             if (foundItem == null) return;
 
-            var traderController = (TraderControllerClass)foundItem.Parent.GetOwner();
-            var discardResult = InteractionsHandlerClass.Discard(foundItem, traderController, false, false);
+            TraderControllerClass traderController = (TraderControllerClass)foundItem.Parent.GetOwner();
+            GStruct455<GClass3200> discardResult = InteractionsHandlerClass.Discard(foundItem, traderController, false);
 
             if (discardResult.Error != null)
             {
@@ -320,7 +320,7 @@ namespace BackdoorBandit
                                 float damageMultiplier = Mathf.Clamp01(1 - distance / explosionRadius);
                                 float damageAmount = baseDamage * damageMultiplier;
 
-                                DamageInfo damageInfo = new DamageInfo
+                                DamageInfoStruct damageInfo = new DamageInfoStruct
                                 {
                                     DamageType = EDamageType.Explosion,
                                     Damage = damageAmount,
@@ -382,7 +382,7 @@ namespace BackdoorBandit
         {
             if (Singleton<IBotGame>.Instantiated)
             {
-                var gameWorld = Singleton<GameWorld>.Instance;
+                GameWorld gameWorld = Singleton<GameWorld>.Instance;
                 gameWorld.GetOrAddComponent<ExplosiveBreachComponent>();
             }
 

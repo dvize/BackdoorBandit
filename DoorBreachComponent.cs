@@ -98,8 +98,8 @@ namespace BackdoorBandit
                 if (!IsValidObject(obj, ref invalidCount, ref inoperableCount, ref invalidLayerCount, interactiveLayer))
                     return;
 
-                var randHitPoints = UnityEngine.Random.Range(DoorBreachPlugin.MinHitPoints.Value, DoorBreachPlugin.MaxHitPoints.Value);
-                var hitpoints = obj.gameObject.GetOrAddComponent<Hitpoints>();
+                int randHitPoints = UnityEngine.Random.Range(DoorBreachPlugin.MinHitPoints.Value, DoorBreachPlugin.MaxHitPoints.Value);
+                Hitpoints hitpoints = obj.gameObject.GetOrAddComponent<Hitpoints>();
                 hitpoints.hitpoints = randHitPoints;
 
                 if (obj is Door door)
@@ -173,8 +173,13 @@ namespace BackdoorBandit
             return true;
         }
 
-        private bool IsValidDoorState(Door door) =>
-            door.DoorState == EDoorState.Shut || door.DoorState == EDoorState.Locked || door.DoorState == EDoorState.Breaching || door.DoorState == EDoorState.Open;
+        private bool IsValidDoorState(Door door)
+        {
+            if(door.DoorState == EDoorState.Shut || door.DoorState == EDoorState.Locked || door.DoorState == EDoorState.Breaching || door.DoorState == EDoorState.Open)
+                return true;
+
+            return false;
+        }
 
         private bool IsValidContainerState(LootableContainer container) =>
             container.DoorState == EDoorState.Shut || container.DoorState == EDoorState.Locked || container.DoorState == EDoorState.Breaching;
@@ -198,7 +203,7 @@ namespace BackdoorBandit
         {
             if (Singleton<IBotGame>.Instantiated)
             {
-                var gameWorld = Singleton<GameWorld>.Instance;
+                GameWorld gameWorld = Singleton<GameWorld>.Instance;
                 gameWorld.GetOrAddComponent<DoorBreachComponent>();
             }
         }
@@ -226,10 +231,10 @@ namespace BackdoorBandit
             ApplicableWeapons.UnionWith(DoorBreachComponent.OtherWeapons);
 #if DEBUG
             //print out applicable weapons hashes to console
-            Logger.LogInfo("Applicable Weapons:");
-            foreach (var weapon in ApplicableWeapons)
+            Logger.LogDebug("Applicable Weapons:");
+            foreach (string weapon in ApplicableWeapons)
             {
-                Logger.LogInfo(weapon);
+                Logger.LogDebug(weapon);
             }
 #endif
         }

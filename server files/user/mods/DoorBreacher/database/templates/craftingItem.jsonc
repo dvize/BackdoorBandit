@@ -1,0 +1,54 @@
+[
+    {
+        "_id": "665d4ce7e381d16c8676292b", // Unique MongoID for this recipe
+        "areaType": 10,
+        "requirements": [
+        {
+            "areaType": 10, //Workbench
+            "requiredLevel": 2,
+            "type": "Area"
+        },
+        {
+            "templateId": "60391b0fb847c71012789415", // TNT
+            "count": 2,
+            "isFunctional": false,
+            "isEncoded": false,
+            "type": "Item"
+        },
+        {
+            "templateId": "5c06779c86f77426e00dd782", // Bundle of wires
+            "count": 1,
+            "isFunctional": false,
+            "isEncoded": false,
+            "type": "Item"
+        },
+        {
+            "templateId": "5e2af51086f7746d3f3c3402", // Greade fuze
+            "count": 1,
+            "isFunctional": false,
+            "isEncoded": false,
+            "type": "Item"
+        },
+        {
+            "templateId": "5d0376a486f7747d8050965c", // Military circuit board
+            "count": 1,
+            "isFunctional": false,
+            "isEncoded": false,
+            "type": "Item"
+        },
+        {
+            "templateId": "5af04b6486f774195a3ebb49", // Pliers elite tool
+            "type": "Tool"
+        }
+        ],
+        "productionTime": 3600, // Time to craft in seconds
+        "needFuelForAllProductionTime": false,
+        "locked": false,
+        "endProduct": "6636606320e842b50084e51a", // C4 template_id, don't change
+        "continuous": false,
+        "count": 1, // How many can be produced at once
+        "productionLimitCount": 0,
+        "isEncoded": false,
+        "isCodeProduction": false
+    }
+]

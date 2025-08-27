@@ -1,0 +1,28 @@
+{
+  "manifest": [
+    {
+      "key": "DoorBreacher.bundle",
+			"dependencyKeys": [
+				"cubemaps",
+				"shaders",
+				"assets/commonassets/physics/physicsmaterials.bundle"
+      ]
+    },
+    {
+      "key": "DoorBreacherBox.bundle",
+			"dependencyKeys": [
+				"cubemaps",
+				"shaders",
+				"assets/commonassets/physics/physicsmaterials.bundle"
+      ]
+    },
+    {
+      "key": "C4Explosive.bundle",
+			"dependencyKeys": [
+				"cubemaps",
+				"shaders",
+				"assets/commonassets/physics/physicsmaterials.bundle"
+      ]
+    }
+  ]
+}

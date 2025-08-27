@@ -1,0 +1,31 @@
+{
+  "name": "props-doorbreacher",
+  "version": "1.11.0",
+  "main": "src/mod.js",
+  "isBundleMod": true,
+  "license": "MIT",
+  "author": "Props",
+  "sptVersion": "~3.11",
+  "loadBefore": [],
+	"loadAfter": [],
+	"incompatibilities": [],
+	"contributors": ["Tron", "MakerMacher"],
+  "scripts": {
+        "setup": "npm i",
+        "build": "node ./build.mjs",
+        "buildinfo": "node ./build.mjs --verbose"
+    },
+    "devDependencies": {
+      "@types/node": "^22.12.0",
+      "@typescript-eslint/eslint-plugin": "6.7.5",
+      "@typescript-eslint/parser": "6.7.5",
+      "archiver": "^6.0",
+      "eslint": "8.51.0",
+      "fs-extra": "^11.1",
+      "ignore": "^5.2",
+      "os": "^0.1",
+      "tsyringe": "4.8.0",
+      "typescript": "5.8.2",
+      "winston": "3.11.0"
+  }
+}

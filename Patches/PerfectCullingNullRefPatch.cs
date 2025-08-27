@@ -18,7 +18,7 @@ namespace BackdoorBandit.Patches
             // Safely handle Renderer[] array
             if (__instance.runtimeProxies != null)
             {
-                foreach (var renderer in __instance.runtimeProxies)
+                foreach (Renderer renderer in __instance.runtimeProxies)
                 {
                     if (renderer != null)
                     {
@@ -30,7 +30,7 @@ namespace BackdoorBandit.Patches
             // Safely handle CullingObject array
             if (__instance.cullingLightObjects != null)
             {
-                foreach (var cullingObject in __instance.cullingLightObjects)
+                foreach (CullingObject cullingObject in __instance.cullingLightObjects)
                 {
                     if (cullingObject != null)
                     {
@@ -42,7 +42,7 @@ namespace BackdoorBandit.Patches
             // Safely handle AnalyticSource array
             if (__instance.analyticSources != null)
             {
-                foreach (var analyticSource in __instance.analyticSources)
+                foreach (AnalyticSource analyticSource in __instance.analyticSources)
                 {
                     if (analyticSource != null)
                     {

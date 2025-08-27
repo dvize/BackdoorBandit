@@ -30,7 +30,7 @@ namespace BackdoorBandit
 
 
         [PatchPostfix]
-        public static void PatchPostFix(DamageInfo damageInfo, GStruct389 shotID)
+        public static void PatchPostFix(DamageInfoStruct damageInfo, ShotIdStruct shotID)
         {
             //try catch for random things applying damage that we don't want
             try
@@ -43,7 +43,7 @@ namespace BackdoorBandit
             catch { }
         }
 
-        private static bool ShouldApplyDamage(DamageInfo damageInfo)
+        private static bool ShouldApplyDamage(DamageInfoStruct damageInfo)
         {
             return damageInfo.Player != null
                 && damageInfo.Player.iPlayer.IsYourPlayer
@@ -52,7 +52,7 @@ namespace BackdoorBandit
                 && damageInfo.DamageType != EDamageType.Explosion;
         }
 
-        private static void HandleDamageForEntity(DamageInfo damageInfo, BallisticCollider collider)
+        private static void HandleDamageForEntity(DamageInfoStruct damageInfo, BallisticCollider collider)
         {
             bool isCarTrunk = false;
             bool isLootableContainer = false;
@@ -85,7 +85,7 @@ namespace BackdoorBandit
         }
 
         #region DamageApplication
-        private static void HandleCarTrunkDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        private static void HandleCarTrunkDamage(DamageInfoStruct damageInfo, BallisticCollider collider, ref bool validDamage)
         {
             if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenCarDoors.Value)
             {
@@ -96,13 +96,13 @@ namespace BackdoorBandit
             {
                 if (hitpoints.hitpoints <= 0)
                 {
-                    var carTrunk = entity.GetComponentInParent<Trunk>();
+                    Trunk carTrunk = entity.GetComponentInParent<Trunk>();
                     OpenDoorIfNotAlreadyOpen(carTrunk, damageInfo.Player.AIData.Player, EInteractionType.Open);
                 }
             });
         }
 
-        private static void HandleLootableContainerDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        private static void HandleLootableContainerDamage(DamageInfoStruct damageInfo, BallisticCollider collider, ref bool validDamage)
         {
             if (!DoorBreachPlugin.PlebMode.Value && DoorBreachPlugin.OpenLootableContainers.Value)
             {
@@ -113,13 +113,13 @@ namespace BackdoorBandit
             {
                 if (hitpoints.hitpoints <= 0)
                 {
-                    var lootContainer = entity.GetComponentInParent<LootableContainer>();
+                    LootableContainer lootContainer = entity.GetComponentInParent<LootableContainer>();
                     OpenDoorIfNotAlreadyOpen(lootContainer, damageInfo.Player.AIData.Player, EInteractionType.Open);
                 }
             });
         }
 
-        internal static void HandleDoorDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage)
+        internal static void HandleDoorDamage(DamageInfoStruct damageInfo, BallisticCollider collider, ref bool validDamage)
         {
             if (!DoorBreachPlugin.PlebMode.Value)
             {
@@ -128,17 +128,25 @@ namespace BackdoorBandit
 
             HandleDamage(damageInfo, collider, ref validDamage, "Door", (hitpoints, entity) =>
             {
+                WorldInteractiveObject door = entity.GetComponentInParent<WorldInteractiveObject>();
+
+#if DEBUG
+                DoorBreachComponent.Logger.LogDebug("[Door info]");
+                DoorBreachComponent.Logger.LogDebug($"KeyId: {door.KeyId}");
+                DoorBreachComponent.Logger.LogDebug($"DoorState: {door.DoorState}");
+                DoorBreachComponent.Logger.LogDebug($"InitialDoorState: {door.InitialDoorState}");
+#endif
+
                 if (hitpoints.hitpoints <= 0)
                 {
-                    var door = entity.GetComponentInParent<Door>();
                     OpenDoorIfNotAlreadyOpen(door, damageInfo.Player.AIData.Player, EInteractionType.Breach);
                 }
             });
         }
 
-        internal static void HandleDamage(DamageInfo damageInfo, BallisticCollider collider, ref bool validDamage, string entityName, Action<Hitpoints, GameObject> onHitpointsZero)
+        internal static void HandleDamage(DamageInfoStruct damageInfo, BallisticCollider collider, ref bool validDamage, string entityName, Action<Hitpoints, GameObject> onHitpointsZero)
         {
-            var hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
+            Hitpoints hitpoints = collider.GetComponentInParent<Hitpoints>() as Hitpoints;
 
             if (validDamage)
             {
@@ -187,7 +195,7 @@ namespace BackdoorBandit
         }
 
 
-        #endregion
+#endregion
 
 
 
